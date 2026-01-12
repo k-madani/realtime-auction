@@ -3,6 +3,8 @@ package com.auction.realtime_auction.service;
 import com.auction.realtime_auction.dto.AuthResponse;
 import com.auction.realtime_auction.dto.LoginRequest;
 import com.auction.realtime_auction.dto.RegisterRequest;
+import com.auction.realtime_auction.exception.BadRequestException;
+import com.auction.realtime_auction.exception.UnauthorizedException;
 import com.auction.realtime_auction.model.User;
 import com.auction.realtime_auction.repository.UserRepository;
 import com.auction.realtime_auction.security.JwtUtil;
@@ -22,19 +24,19 @@ public class AuthService {
     public AuthResponse register(RegisterRequest request) {
         // Check if username already exists
         if (userRepository.existsByUsername(request.getUsername())) {
-            throw new RuntimeException("Username already exists");
+            throw new BadRequestException("Username '" + request.getUsername() + "' is already taken");
         }
 
         // Check if email already exists
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email already exists");
+            throw new BadRequestException("Email '" + request.getEmail() + "' is already registered");
         }
 
         // Create new user
         User user = new User();
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
-        user.setPassword(passwordEncoder.encode(request.getPassword())); // Hash password
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole("USER");
 
         // Save to database
@@ -51,11 +53,11 @@ public class AuthService {
     public AuthResponse login(LoginRequest request) {
         // Find user by username
         User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new RuntimeException("Invalid username or password"));
+                .orElseThrow(() -> new UnauthorizedException("Invalid username or password"));
 
         // Check if password matches
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Invalid username or password");
+            throw new UnauthorizedException("Invalid username or password");
         }
 
         // Generate JWT token

@@ -24,11 +24,13 @@ public class AuctionService {
     @Transactional
     public AuctionResponse createAuction(CreateAuctionRequest request, String username) {
         User seller = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new com.auction.realtime_auction.exception.ResourceNotFoundException(
+                        "User not found: " + username));
         
         // Validate end time is after start time
         if (request.getEndTime().isBefore(request.getStartTime())) {
-            throw new RuntimeException("End time must be after start time");
+            throw new com.auction.realtime_auction.exception.BadRequestException(
+                    "End time must be after start time");
         }
         
         Auction auction = new Auction();
@@ -49,7 +51,8 @@ public class AuctionService {
     
     public AuctionResponse getAuctionById(Long id) {
         Auction auction = auctionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Auction not found"));
+                .orElseThrow(() -> new com.auction.realtime_auction.exception.ResourceNotFoundException(
+                        "Auction not found with id: " + id));
         return mapToResponse(auction);
     }
     
@@ -62,7 +65,8 @@ public class AuctionService {
     
     public List<AuctionResponse> getMyAuctions(String username) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new com.auction.realtime_auction.exception.ResourceNotFoundException(
+                        "User not found: " + username));
         
         return auctionRepository.findBySellerId(user.getId())
                 .stream()
@@ -73,10 +77,12 @@ public class AuctionService {
     @Transactional
     public void startAuction(Long auctionId) {
         Auction auction = auctionRepository.findById(auctionId)
-                .orElseThrow(() -> new RuntimeException("Auction not found"));
+                .orElseThrow(() -> new com.auction.realtime_auction.exception.ResourceNotFoundException(
+                        "Auction not found with id: " + auctionId));
         
         if (auction.getStatus() != Auction.AuctionStatus.PENDING) {
-            throw new RuntimeException("Auction cannot be started");
+            throw new com.auction.realtime_auction.exception.BadRequestException(
+                    "Auction cannot be started. Current status: " + auction.getStatus());
         }
         
         auction.setStatus(Auction.AuctionStatus.ACTIVE);
@@ -86,10 +92,12 @@ public class AuctionService {
     @Transactional
     public void endAuction(Long auctionId) {
         Auction auction = auctionRepository.findById(auctionId)
-                .orElseThrow(() -> new RuntimeException("Auction not found"));
+                .orElseThrow(() -> new com.auction.realtime_auction.exception.ResourceNotFoundException(
+                        "Auction not found with id: " + auctionId));
         
         if (auction.getStatus() != Auction.AuctionStatus.ACTIVE) {
-            throw new RuntimeException("Auction is not active");
+            throw new com.auction.realtime_auction.exception.BadRequestException(
+                    "Only active auctions can be ended. Current status: " + auction.getStatus());
         }
         
         auction.setStatus(Auction.AuctionStatus.ENDED);
@@ -99,14 +107,17 @@ public class AuctionService {
     @Transactional
     public void cancelAuction(Long auctionId, String username) {
         Auction auction = auctionRepository.findById(auctionId)
-                .orElseThrow(() -> new RuntimeException("Auction not found"));
+                .orElseThrow(() -> new com.auction.realtime_auction.exception.ResourceNotFoundException(
+                        "Auction not found with id: " + auctionId));
         
         if (!auction.getSeller().getUsername().equals(username)) {
-            throw new RuntimeException("Only seller can cancel the auction");
+            throw new com.auction.realtime_auction.exception.UnauthorizedException(
+                    "Only the seller can cancel this auction");
         }
         
         if (auction.getStatus() == Auction.AuctionStatus.ENDED) {
-            throw new RuntimeException("Cannot cancel ended auction");
+            throw new com.auction.realtime_auction.exception.BadRequestException(
+                    "Cannot cancel an auction that has already ended");
         }
         
         auction.setStatus(Auction.AuctionStatus.CANCELLED);

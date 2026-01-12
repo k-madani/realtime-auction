@@ -24,16 +24,12 @@ public class BidController {
             @PathVariable Long auctionId,
             @Valid @RequestBody PlaceBidRequest request,
             Authentication authentication) {
-        try {
-            BidResponse response = bidService.placeBid(
-                    auctionId,
-                    request,
-                    authentication.getName()
-            );
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
-        }
+        BidResponse response = bidService.placeBid(
+                auctionId,
+                request,
+                authentication.getName()
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
     
     @GetMapping("/auction/{auctionId}")

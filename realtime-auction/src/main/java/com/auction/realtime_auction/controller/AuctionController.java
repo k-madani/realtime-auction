@@ -23,25 +23,17 @@ public class AuctionController {
     public ResponseEntity<AuctionResponse> createAuction(
             @Valid @RequestBody CreateAuctionRequest request,
             Authentication authentication) {
-        try {
-            AuctionResponse response = auctionService.createAuction(
-                    request, 
-                    authentication.getName()
-            );
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
-        }
+        AuctionResponse response = auctionService.createAuction(
+                request, 
+                authentication.getName()
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
     
     @GetMapping("/{id}")
     public ResponseEntity<AuctionResponse> getAuction(@PathVariable Long id) {
-        try {
-            AuctionResponse response = auctionService.getAuctionById(id);
-            return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+        AuctionResponse response = auctionService.getAuctionById(id);
+        return ResponseEntity.ok(response);
     }
     
     @GetMapping("/active")
@@ -58,33 +50,21 @@ public class AuctionController {
     
     @PutMapping("/{id}/start")
     public ResponseEntity<Void> startAuction(@PathVariable Long id) {
-        try {
-            auctionService.startAuction(id);
-            return ResponseEntity.ok().build();
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
-        }
+        auctionService.startAuction(id);
+        return ResponseEntity.ok().build();
     }
     
     @PutMapping("/{id}/end")
     public ResponseEntity<Void> endAuction(@PathVariable Long id) {
-        try {
-            auctionService.endAuction(id);
-            return ResponseEntity.ok().build();
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
-        }
+        auctionService.endAuction(id);
+        return ResponseEntity.ok().build();
     }
     
     @PutMapping("/{id}/cancel")
     public ResponseEntity<Void> cancelAuction(
             @PathVariable Long id,
             Authentication authentication) {
-        try {
-            auctionService.cancelAuction(id, authentication.getName());
-            return ResponseEntity.ok().build();
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
-        }
+        auctionService.cancelAuction(id, authentication.getName());
+        return ResponseEntity.ok().build();
     }
 }

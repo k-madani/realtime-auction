@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -28,30 +29,36 @@ public class BidService {
     public BidResponse placeBid(Long auctionId, PlaceBidRequest request, String username) {
         // Get auction
         Auction auction = auctionRepository.findById(auctionId)
-                .orElseThrow(() -> new RuntimeException("Auction not found"));
+                .orElseThrow(() -> new com.auction.realtime_auction.exception.ResourceNotFoundException(
+                        "Auction not found with id: " + auctionId));
         
         // Get bidder
         User bidder = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new com.auction.realtime_auction.exception.ResourceNotFoundException(
+                        "User not found: " + username));
         
         // Validate auction is active
         if (auction.getStatus() != Auction.AuctionStatus.ACTIVE) {
-            throw new RuntimeException("Auction is not active");
+            throw new com.auction.realtime_auction.exception.BadRequestException(
+                    "Auction is not active. Current status: " + auction.getStatus());
         }
         
         // Validate auction hasn't ended
         if (LocalDateTime.now().isAfter(auction.getEndTime())) {
-            throw new RuntimeException("Auction has ended");
+            throw new com.auction.realtime_auction.exception.BadRequestException(
+                    "Auction has already ended on " + auction.getEndTime());
         }
         
         // Validate seller cannot bid on own auction
         if (auction.getSeller().getId().equals(bidder.getId())) {
-            throw new RuntimeException("Seller cannot bid on their own auction");
+            throw new com.auction.realtime_auction.exception.BadRequestException(
+                    "Sellers cannot bid on their own auctions");
         }
         
         // Validate bid amount is higher than current price
         if (request.getAmount().compareTo(auction.getCurrentPrice()) <= 0) {
-            throw new RuntimeException("Bid must be higher than current price: " + auction.getCurrentPrice());
+            throw new com.auction.realtime_auction.exception.BadRequestException(
+                    "Bid amount must be higher than current price of $" + auction.getCurrentPrice());
         }
         
         // Mark previous winning bid as not winning
@@ -88,7 +95,8 @@ public class BidService {
     
     public List<BidResponse> getMyBids(String username) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new com.auction.realtime_auction.exception.ResourceNotFoundException(
+                        "User not found: " + username));
         
         return bidRepository.findByBidderIdOrderByBidTimeDesc(user.getId())
                 .stream()

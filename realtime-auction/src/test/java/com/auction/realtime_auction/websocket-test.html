@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Test - Real-Time Auction</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .section {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .connected {
+            background: #d4edda;
+            color: #155724;
+        }
+        .disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .notification {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+        input {
+            padding: 8px;
+            margin: 5px;
+            width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔴 WebSocket Test - Real-Time Auction</h1>
+
+    <!-- Connection Status -->
+    <div id="status" class="status disconnected">
+        ⚠️ Disconnected
+    </div>
+
+    <!-- Connection Controls -->
+    <div class="section">
+        <h3>1. Connect to WebSocket</h3>
+        <button onclick="connect()">Connect</button>
+        <button onclick="disconnect()">Disconnect</button>
+    </div>
+
+    <!-- Subscribe to Auction -->
+    <div class="section">
+        <h3>2. Subscribe to Auction</h3>
+        <input type="number" id="auctionId" placeholder="Enter Auction ID" value="1">
+        <button onclick="subscribe()">Subscribe to Auction</button>
+        <p id="subscriptionStatus"></p>
+    </div>
+
+    <!-- Notifications -->
+    <div class="section">
+        <h3>3. Real-Time Notifications</h3>
+        <div id="notifications"></div>
+    </div>
+
+    <script>
+        let stompClient = null;
+        let subscription = null;
+
+        function connect() {
+            const socket = new SockJS('http://localhost:8080/ws');
+            stompClient = Stomp.over(socket);
+            
+            stompClient.connect({}, function(frame) {
+                console.log('Connected: ' + frame);
+                document.getElementById('status').className = 'status connected';
+                document.getElementById('status').innerHTML = '✅ Connected';
+            }, function(error) {
+                console.log('Error: ' + error);
+                document.getElementById('status').className = 'status disconnected';
+                document.getElementById('status').innerHTML = '❌ Connection Error';
+            });
+        }
+
+        function disconnect() {
+            if (stompClient !== null) {
+                if (subscription !== null) {
+                    subscription.unsubscribe();
+                }
+                stompClient.disconnect();
+                document.getElementById('status').className = 'status disconnected';
+                document.getElementById('status').innerHTML = '⚠️ Disconnected';
+            }
+        }
+
+        function subscribe() {
+            if (stompClient === null || !stompClient.connected) {
+                alert('Please connect first!');
+                return;
+            }
+
+            const auctionId = document.getElementById('auctionId').value;
+            
+            if (subscription !== null) {
+                subscription.unsubscribe();
+            }
+
+            // Subscribe to bid notifications
+            subscription = stompClient.subscribe('/topic/auction/' + auctionId, function(message) {
+                const notification = JSON.parse(message.body);
+                showNotification(notification, 'BID');
+            });
+
+            // Subscribe to status notifications
+            stompClient.subscribe('/topic/auction/' + auctionId + '/status', function(message) {
+                const notification = JSON.parse(message.body);
+                showNotification(notification, 'STATUS');
+            });
+
+            document.getElementById('subscriptionStatus').innerHTML = 
+                '✅ Subscribed to Auction ID: ' + auctionId;
+        }
+
+        function showNotification(data, type) {
+            const notificationsDiv = document.getElementById('notifications');
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            
+            const timestamp = new Date().toLocaleTimeString();
+            
+            if (type === 'BID') {
+                notification.innerHTML = `
+                    <strong>[${timestamp}] NEW BID</strong><br>
+                    💰 ${data.bidderUsername} bid $${data.amount}<br>
+                    📊 Current Price: $${data.currentPrice}<br>
+                    🔢 Total Bids: ${data.totalBids}<br>
+                    💬 ${data.message}
+                `;
+            } else if (type === 'STATUS') {
+                notification.innerHTML = `
+                    <strong>[${timestamp}] STATUS UPDATE</strong><br>
+                    📢 Status: ${data.status}<br>
+                    💬 ${data.message}<br>
+                    ${data.winnerUsername ? '🏆 Winner: ' + data.winnerUsername : ''}
+                `;
+            }
+            
+            notificationsDiv.insertBefore(notification, notificationsDiv.firstChild);
+        }
+
+        // Auto-connect on page load
+        window.onload = function() {
+            console.log('Page loaded. Ready to connect.');
+        };
+    </script>
+</body>
+</html>

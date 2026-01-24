@@ -30,7 +30,9 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/ws/**").permitAll()
+                        .requestMatchers("/ws/**").permitAll() // WebSocket endpoint
+                        .requestMatchers("/topic/**").permitAll() // WebSocket topics
+                        .requestMatchers("/app/**").permitAll() // WebSocket app destination
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session

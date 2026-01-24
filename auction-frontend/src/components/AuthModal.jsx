@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
-import { X, User, UserPlus } from 'lucide-react';
+import { X, LogIn, UserPlus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const AuthModal = ({ isOpen, onClose }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
+    username: '',
     email: '',
     password: '',
-    fullName: '',
-    phoneNumber: '',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -23,14 +22,18 @@ const AuthModal = ({ isOpen, onClose }) => {
     setLoading(true);
 
     const result = isLogin 
-      ? await login({ email: formData.email, password: formData.password })
-      : await register(formData);
+      ? await login({ username: formData.username, password: formData.password })
+      : await register({ 
+          username: formData.username, 
+          email: formData.email, 
+          password: formData.password 
+        });
 
     setLoading(false);
 
     if (result.success) {
       onClose();
-      setFormData({ email: '', password: '', fullName: '', phoneNumber: '' });
+      setFormData({ username: '', email: '', password: '' });
     } else {
       setError(result.error);
     }
@@ -43,7 +46,7 @@ const AuthModal = ({ isOpen, onClose }) => {
   const toggleMode = () => {
     setIsLogin(!isLogin);
     setError('');
-    setFormData({ email: '', password: '', fullName: '', phoneNumber: '' });
+    setFormData({ username: '', email: '', password: '' });
   };
 
   return (
@@ -59,7 +62,7 @@ const AuthModal = ({ isOpen, onClose }) => {
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 bg-black rounded-lg">
             {isLogin ? (
-              <User className="w-6 h-6 text-accent-gold" />
+              <LogIn className="w-6 h-6 text-accent-gold" />
             ) : (
               <UserPlus className="w-6 h-6 text-accent-gold" />
             )}
@@ -76,35 +79,37 @@ const AuthModal = ({ isOpen, onClose }) => {
         )}
 
         <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-semibold text-black mb-1">
+              Username
+            </label>
+            <input
+              type="text"
+              name="username"
+              value={formData.username}
+              onChange={handleChange}
+              placeholder="Enter your username"
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
+              required
+            />
+          </div>
+
           {!isLogin && (
             <div>
               <label className="block text-sm font-semibold text-black mb-1">
-                Full Name
+                Email
               </label>
               <input
-                type="text"
-                name="fullName"
-                value={formData.fullName}
+                type="email"
+                name="email"
+                value={formData.email}
                 onChange={handleChange}
+                placeholder="Enter your email"
                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
                 required={!isLogin}
               />
             </div>
           )}
-
-          <div>
-            <label className="block text-sm font-semibold text-black mb-1">
-              Email
-            </label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
-              required
-            />
-          </div>
 
           <div>
             <label className="block text-sm font-semibold text-black mb-1">
@@ -115,25 +120,11 @@ const AuthModal = ({ isOpen, onClose }) => {
               name="password"
               value={formData.password}
               onChange={handleChange}
+              placeholder="Enter your password"
               className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
               required
             />
           </div>
-
-          {!isLogin && (
-            <div>
-              <label className="block text-sm font-semibold text-black mb-1">
-                Phone Number
-              </label>
-              <input
-                type="tel"
-                name="phoneNumber"
-                value={formData.phoneNumber}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
-              />
-            </div>
-          )}
 
           <button
             onClick={handleSubmit}

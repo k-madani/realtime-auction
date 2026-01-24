@@ -25,7 +25,7 @@ const Header = ({ isAuthenticated, currentUser, onSignIn, onLogout }) => {
               <div className="flex items-center gap-2 px-4 py-2 bg-primary-light rounded-lg">
                 <User className="w-4 h-4 text-accent-gold" />
                 <span className="text-sm text-gray-300">
-                  {currentUser?.fullName || currentUser?.email}
+                  Welcome, {currentUser?.username || currentUser?.email}
                 </span>
               </div>
               <button

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { X, LogIn, UserPlus } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { X, User, UserPlus } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const AuthModal = ({ isOpen, onClose }) => {
   const [isLogin, setIsLogin] = useState(true);
@@ -47,28 +47,30 @@ const AuthModal = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full mx-4 relative">
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-md">
+      <div className="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full mx-4 relative border-2 border-black">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+          className="absolute top-4 right-4 text-gray-400 hover:text-black transition"
         >
           <X className="w-6 h-6" />
         </button>
 
         <div className="flex items-center gap-3 mb-6">
-          {isLogin ? (
-            <LogIn className="w-8 h-8 text-blue-600" />
-          ) : (
-            <UserPlus className="w-8 h-8 text-blue-600" />
-          )}
-          <h2 className="text-2xl font-bold text-gray-800">
+          <div className="p-2 bg-black rounded-lg">
+            {isLogin ? (
+              <User className="w-6 h-6 text-accent-gold" />
+            ) : (
+              <UserPlus className="w-6 h-6 text-accent-gold" />
+            )}
+          </div>
+          <h2 className="text-2xl font-bold text-black">
             {isLogin ? 'Sign In' : 'Create Account'}
           </h2>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+          <div className="mb-4 p-3 bg-red-50 border-l-4 border-accent-red text-red-700 rounded">
             {error}
           </div>
         )}
@@ -76,7 +78,7 @@ const AuthModal = ({ isOpen, onClose }) => {
         <div className="space-y-4">
           {!isLogin && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-semibold text-black mb-1">
                 Full Name
               </label>
               <input
@@ -84,14 +86,14 @@ const AuthModal = ({ isOpen, onClose }) => {
                 name="fullName"
                 value={formData.fullName}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
                 required={!isLogin}
               />
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-black mb-1">
               Email
             </label>
             <input
@@ -99,13 +101,13 @@ const AuthModal = ({ isOpen, onClose }) => {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-black mb-1">
               Password
             </label>
             <input
@@ -113,14 +115,14 @@ const AuthModal = ({ isOpen, onClose }) => {
               name="password"
               value={formData.password}
               onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
               required
             />
           </div>
 
           {!isLogin && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-semibold text-black mb-1">
                 Phone Number
               </label>
               <input
@@ -128,7 +130,7 @@ const AuthModal = ({ isOpen, onClose }) => {
                 name="phoneNumber"
                 value={formData.phoneNumber}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
               />
             </div>
           )}
@@ -136,7 +138,7 @@ const AuthModal = ({ isOpen, onClose }) => {
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="w-full py-3 bg-black text-white rounded-lg hover:bg-primary-light font-bold disabled:bg-gray-400 disabled:cursor-not-allowed transition shadow-lg hover:shadow-xl"
           >
             {loading ? 'Please wait...' : isLogin ? 'Sign In' : 'Create Account'}
           </button>
@@ -145,7 +147,7 @@ const AuthModal = ({ isOpen, onClose }) => {
         <div className="mt-4 text-center">
           <button
             onClick={toggleMode}
-            className="text-sm text-blue-600 hover:text-blue-700"
+            className="text-sm text-black hover:text-primary-light font-semibold"
           >
             {isLogin
               ? "Don't have an account? Sign up"

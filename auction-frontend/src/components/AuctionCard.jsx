@@ -1,7 +1,7 @@
 import React from 'react';
 import { Clock, TrendingUp, User, Gavel } from 'lucide-react';
 
-const AuctionCard = ({ auction, onSelect, isSelected }) => {
+const AuctionCard = ({ auction, onClick }) => {
   const getTimeRemaining = (endTime) => {
     const end = new Date(endTime);
     const now = new Date();
@@ -33,14 +33,12 @@ const AuctionCard = ({ auction, onSelect, isSelected }) => {
 
   return (
     <div
-      onClick={() => onSelect(auction)}
-      className={`bg-white rounded-lg border-2 cursor-pointer transition hover:shadow-xl ${
-        isSelected ? 'border-black shadow-xl' : 'border-gray-200 hover:border-gray-400'
-      }`}
+      onClick={onClick}
+      className="bg-white rounded-lg border-2 border-gray-200 cursor-pointer transition hover:shadow-xl hover:border-black group"
     >
       {/* Image Placeholder */}
-      <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 rounded-t-lg flex items-center justify-center">
-        <Gavel className="w-16 h-16 text-gray-400" />
+      <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 rounded-t-lg flex items-center justify-center overflow-hidden">
+        <Gavel className="w-16 h-16 text-gray-400 group-hover:scale-110 transition" />
         
         {/* Status Badge */}
         <div className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-bold ${getStatusColor(auction.status)}`}>
@@ -58,7 +56,7 @@ const AuctionCard = ({ auction, onSelect, isSelected }) => {
 
       {/* Content */}
       <div className="p-5">
-        <h3 className="text-xl font-bold text-black mb-2 line-clamp-1">
+        <h3 className="text-xl font-bold text-black mb-2 line-clamp-1 group-hover:text-accent-gold transition">
           {auction.title}
         </h3>
         
@@ -85,18 +83,20 @@ const AuctionCard = ({ auction, onSelect, isSelected }) => {
               <span>{auction.totalBids || 0} bids</span>
             </div>
             
-            {auction.highestBidder && (
+            {auction.winnerUsername && (
               <div className="text-gray-600">
-                Leader: <span className="font-semibold text-black">{auction.highestBidder}</span>
+                Leader: <span className="font-semibold text-black">{auction.winnerUsername}</span>
               </div>
             )}
           </div>
 
           {/* Starting Price */}
           <div className="flex justify-between items-center text-xs text-gray-500">
-            <span>Starting bid: ${auction.startingPrice}</span>
+            <span>Starting: ${auction.startingPrice}</span>
             {auction.status === 'ACTIVE' && (
-              <span className="text-accent-red font-semibold">Ends {new Date(auction.endTime).toLocaleDateString()}</span>
+              <span className="text-accent-red font-semibold">
+                Ends {new Date(auction.endTime).toLocaleDateString()}
+              </span>
             )}
           </div>
         </div>

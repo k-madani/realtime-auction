@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, Filter, RefreshCw } from 'lucide-react';
-import AuctionCard from './AuctionCard';
 import { auctionsAPI } from '../services/api';
+import AuctionCard from '../components/AuctionCard';
 
-const AuctionList = ({ onSelectAuction, selectedAuction }) => {
+const AuctionsPage = () => {
   const [auctions, setAuctions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('ALL');
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchAuctions();
@@ -16,7 +18,7 @@ const AuctionList = ({ onSelectAuction, selectedAuction }) => {
   const fetchAuctions = async () => {
     setLoading(true);
     try {
-      const response = await auctionsAPI.getAll();
+      const response = await auctionsAPI.getAllActive();
       setAuctions(response.data);
     } catch (error) {
       console.error('Failed to fetch auctions:', error);
@@ -28,20 +30,23 @@ const AuctionList = ({ onSelectAuction, selectedAuction }) => {
   const filteredAuctions = auctions.filter(auction => {
     const matchesSearch = auction.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          auction.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterStatus === 'ALL' || auction.status === filterStatus;
-    return matchesSearch && matchesFilter;
+    return matchesSearch;
   });
 
+  const handleCardClick = (auctionId) => {
+    navigate(`/auctions/${auctionId}`);
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="max-w-7xl mx-auto px-6 py-8">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div>
-          <h2 className="text-3xl font-bold text-black flex items-center gap-3">
-            <span className="w-2 h-8 bg-accent-gold rounded"></span>
+          <h1 className="text-4xl font-bold text-black flex items-center gap-3">
+            <span className="w-2 h-10 bg-accent-gold rounded"></span>
             Live Auctions
-          </h2>
-          <p className="text-gray-600 mt-1">
+          </h1>
+          <p className="text-gray-600 mt-2">
             {filteredAuctions.length} auction{filteredAuctions.length !== 1 ? 's' : ''} available
           </p>
         </div>
@@ -49,40 +54,24 @@ const AuctionList = ({ onSelectAuction, selectedAuction }) => {
         <button
           onClick={fetchAuctions}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-primary-light transition disabled:opacity-50"
+          className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-lg hover:bg-primary-light transition disabled:opacity-50 font-semibold"
         >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
           Refresh
         </button>
       </div>
 
-      {/* Search and Filter */}
-      <div className="flex flex-col md:flex-row gap-4">
-        {/* Search */}
-        <div className="flex-1 relative">
-          <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+      {/* Search Bar */}
+      <div className="mb-8">
+        <div className="relative">
+          <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
             placeholder="Search auctions by title or description..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
+            className="w-full pl-12 pr-4 py-4 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-lg"
           />
-        </div>
-
-        {/* Filter */}
-        <div className="relative">
-          <Filter className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="pl-10 pr-8 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black appearance-none bg-white cursor-pointer min-w-[180px]"
-          >
-            <option value="ALL">All Status</option>
-            <option value="ACTIVE">Active</option>
-            <option value="PENDING">Pending</option>
-            <option value="ENDED">Ended</option>
-          </select>
         </div>
       </div>
 
@@ -100,15 +89,15 @@ const AuctionList = ({ onSelectAuction, selectedAuction }) => {
         </div>
       ) : filteredAuctions.length === 0 ? (
         /* Empty State */
-        <div className="text-center py-16 bg-white rounded-lg border-2 border-gray-200">
+        <div className="text-center py-20 bg-white rounded-lg border-2 border-gray-200">
           <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Search className="w-10 h-10 text-gray-400" />
           </div>
-          <h3 className="text-xl font-bold text-black mb-2">No auctions found</h3>
+          <h3 className="text-2xl font-bold text-black mb-2">No auctions found</h3>
           <p className="text-gray-600">
-            {searchTerm || filterStatus !== 'ALL'
-              ? 'Try adjusting your search or filter'
-              : 'No auctions available at the moment'}
+            {searchTerm
+              ? 'Try adjusting your search'
+              : 'No active auctions available at the moment'}
           </p>
         </div>
       ) : (
@@ -118,8 +107,7 @@ const AuctionList = ({ onSelectAuction, selectedAuction }) => {
             <AuctionCard
               key={auction.id}
               auction={auction}
-              onSelect={onSelectAuction}
-              isSelected={selectedAuction?.id === auction.id}
+              onClick={() => handleCardClick(auction.id)}
             />
           ))}
         </div>
@@ -128,4 +116,4 @@ const AuctionList = ({ onSelectAuction, selectedAuction }) => {
   );
 };
 
-export default AuctionList;
+export default AuctionsPage;

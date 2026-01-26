@@ -31,16 +31,22 @@ export const authAPI = {
 
 // Auctions API
 export const auctionsAPI = {
-  getAll: () => api.get('/auctions'),
+  getAllActive: () => api.get('/auctions/active'),
   getById: (id) => api.get(`/auctions/${id}`),
+  getMyAuctions: () => api.get('/auctions/my-auctions'),
   create: (data) => api.post('/auctions', data),
+  start: (id) => api.put(`/auctions/${id}/start`),
+  end: (id) => api.put(`/auctions/${id}/end`),
+  cancel: (id) => api.put(`/auctions/${id}/cancel`),
 };
 
 // Bids API
 export const bidsAPI = {
   placeBid: (auctionId, amount) => 
     api.post(`/bids/auction/${auctionId}`, { amount }),
-  getBidHistory: (auctionId) => api.get(`/bids/auction/${auctionId}`),
+  getAuctionBids: (auctionId) => api.get(`/bids/auction/${auctionId}`),
+  getHighestBid: (auctionId) => api.get(`/bids/auction/${auctionId}/highest`),
+  getMyBids: () => api.get('/bids/my-bids'),
 };
 
 export default api;

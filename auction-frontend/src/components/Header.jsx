@@ -22,7 +22,7 @@ const Header = ({ isAuthenticated, currentUser, onSignIn, onLogout }) => {
 
   const handleLogoClick = () => {
     if (isAuthenticated) {
-      navigate('/auctions');
+      navigate('/dashboard');
     } else {
       navigate('/');
     }
@@ -45,16 +45,35 @@ const Header = ({ isAuthenticated, currentUser, onSignIn, onLogout }) => {
           {isAuthenticated ? (
             <>
               <button 
+                onClick={() => navigate('/dashboard')}
+                className="text-gray-300 hover:text-white transition font-medium"
+              >
+                Dashboard
+              </button>
+              <button 
                 onClick={() => navigate('/auctions')}
                 className="text-gray-300 hover:text-white transition font-medium"
               >
-                Auctions
+                Browse
+              </button>
+              <button 
+                onClick={() => navigate('/my-auctions')}
+                className="text-gray-300 hover:text-white transition font-medium"
+              >
+                My Auctions
               </button>
               <button 
                 onClick={() => navigate('/my-bids')}
                 className="text-gray-300 hover:text-white transition font-medium"
               >
                 My Bids
+              </button>
+              <button 
+                onClick={() => navigate('/create-auction')}
+                className="px-4 py-2 bg-accent-gold text-black rounded-lg hover:bg-yellow-500 transition font-semibold flex items-center gap-2"
+              >
+                <Gavel className="w-4 h-4" />
+                Create
               </button>
             </>
           ) : (
@@ -153,12 +172,30 @@ const Header = ({ isAuthenticated, currentUser, onSignIn, onLogout }) => {
               <>
                 <button 
                   onClick={() => {
+                    navigate('/dashboard');
+                    setMobileMenuOpen(false);
+                  }}
+                  className="block w-full text-left text-gray-300 hover:text-white transition py-2"
+                >
+                  Dashboard
+                </button>
+                <button 
+                  onClick={() => {
                     navigate('/auctions');
                     setMobileMenuOpen(false);
                   }}
                   className="block w-full text-left text-gray-300 hover:text-white transition py-2"
                 >
-                  Auctions
+                  Browse Auctions
+                </button>
+                <button 
+                  onClick={() => {
+                    navigate('/my-auctions');
+                    setMobileMenuOpen(false);
+                  }}
+                  className="block w-full text-left text-gray-300 hover:text-white transition py-2"
+                >
+                  My Auctions
                 </button>
                 <button 
                   onClick={() => {
@@ -168,6 +205,15 @@ const Header = ({ isAuthenticated, currentUser, onSignIn, onLogout }) => {
                   className="block w-full text-left text-gray-300 hover:text-white transition py-2"
                 >
                   My Bids
+                </button>
+                <button 
+                  onClick={() => {
+                    navigate('/create-auction');
+                    setMobileMenuOpen(false);
+                  }}
+                  className="block w-full text-left text-gray-300 hover:text-white transition py-2"
+                >
+                  Create Auction
                 </button>
                 <button 
                   onClick={() => {

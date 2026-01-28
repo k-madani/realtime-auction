@@ -38,6 +38,9 @@ export const auctionsAPI = {
   start: (id) => api.put(`/auctions/${id}/start`),
   end: (id) => api.put(`/auctions/${id}/end`),
   cancel: (id) => api.put(`/auctions/${id}/cancel`),
+  // NEW: Search and filter
+  search: (searchParams) => api.post('/auctions/search', searchParams),
+  getEndingSoon: () => api.get('/auctions/ending-soon'),
 };
 
 // Bids API

@@ -8,6 +8,10 @@ import LandingPage from './pages/LandingPage';
 import AuctionsPage from './pages/AuctionsPage';
 import AuctionDetailPage from './pages/AuctionDetailPage';
 import MyBidsPage from './pages/MyBidsPage';
+import DashboardPage from './pages/DashboardPage';
+import ProfilePage from './pages/ProfilePage';
+import CreateAuctionPage from './pages/CreateAuctionPage';
+import MyAuctionsPage from './pages/MyAuctionsPage';
 
 const AppContent = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -34,12 +38,21 @@ const AppContent = () => {
               path="/"
               element={
                 isAuthenticated ?
-                  <Navigate to="/auctions" replace /> :
+                  <Navigate to="/dashboard" replace /> :
                   <LandingPage onGetStarted={handleGetStarted} />
               }
             />
 
             {/* Protected Routes */}
+            <Route
+              path="/dashboard"
+              element={
+                isAuthenticated ?
+                  <DashboardPage /> :
+                  <Navigate to="/" replace />
+              }
+            />
+
             <Route
               path="/auctions"
               element={
@@ -54,6 +67,33 @@ const AppContent = () => {
               element={
                 isAuthenticated ?
                   <MyBidsPage /> :
+                  <Navigate to="/" replace />
+              }
+            />
+
+            <Route
+              path="/my-auctions"
+              element={
+                isAuthenticated ?
+                  <MyAuctionsPage /> :
+                  <Navigate to="/" replace />
+              }
+            />
+
+            <Route
+              path="/create-auction"
+              element={
+                isAuthenticated ?
+                  <CreateAuctionPage /> :
+                  <Navigate to="/" replace />
+              }
+            />
+
+            <Route
+              path="/profile"
+              element={
+                isAuthenticated ?
+                  <ProfilePage /> :
                   <Navigate to="/" replace />
               }
             />

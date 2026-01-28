@@ -49,4 +49,11 @@ export const bidsAPI = {
   getMyBids: () => api.get('/bids/my-bids'),
 };
 
+// Users API
+export const usersAPI = {
+  getProfile: () => api.get('/users/profile'),
+  getStats: () => api.get('/users/stats'),
+  updateProfile: (data) => api.put('/users/profile', data),
+};
+
 export default api;

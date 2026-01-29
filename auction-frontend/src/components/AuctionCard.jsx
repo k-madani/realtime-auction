@@ -1,7 +1,7 @@
 import React from 'react';
-import { Clock, TrendingUp, User, Gavel } from 'lucide-react';
+import { Clock, TrendingUp, User, Gavel, Heart } from 'lucide-react';
 
-const AuctionCard = ({ auction, onClick }) => {
+const AuctionCard = ({ auction, onClick, isInWatchlist, onToggleWatchlist }) => {
   const getTimeRemaining = (endTime) => {
     const end = new Date(endTime);
     const now = new Date();
@@ -40,6 +40,21 @@ const AuctionCard = ({ auction, onClick }) => {
       <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 rounded-t-lg flex items-center justify-center overflow-hidden">
         <Gavel className="w-16 h-16 text-gray-400 group-hover:scale-110 transition" />
         
+        {/* Watchlist Heart Button */}
+        {onToggleWatchlist && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleWatchlist(auction.id);
+            }}
+            className="absolute top-3 left-3 p-2 bg-white rounded-full shadow-lg hover:scale-110 transition z-10"
+          >
+            <Heart 
+              className={`w-5 h-5 ${isInWatchlist ? 'fill-red-500 text-red-500' : 'text-gray-400'}`}
+            />
+          </button>
+        )}
+        
         {/* Status Badge */}
         <div className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-bold ${getStatusColor(auction.status)}`}>
           {auction.status}
@@ -56,6 +71,15 @@ const AuctionCard = ({ auction, onClick }) => {
 
       {/* Content */}
       <div className="p-5">
+        {/* Category Badge */}
+        {auction.categoryDisplay && (
+          <div className="mb-2">
+            <span className="inline-block px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-semibold border border-gray-300">
+              {auction.categoryDisplay}
+            </span>
+          </div>
+        )}
+        
         <h3 className="text-xl font-bold text-black mb-2 line-clamp-1 group-hover:text-accent-gold transition">
           {auction.title}
         </h3>

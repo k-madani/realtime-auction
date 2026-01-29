@@ -12,6 +12,7 @@ import DashboardPage from './pages/DashboardPage';
 import ProfilePage from './pages/ProfilePage';
 import CreateAuctionPage from './pages/CreateAuctionPage';
 import MyAuctionsPage from './pages/MyAuctionsPage';
+import WatchlistPage from './pages/WatchlistPage';
 
 const AppContent = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -67,6 +68,15 @@ const AppContent = () => {
               element={
                 isAuthenticated ?
                   <MyBidsPage /> :
+                  <Navigate to="/" replace />
+              }
+            />
+
+            <Route
+              path="/watchlist"
+              element={
+                isAuthenticated ?
+                  <WatchlistPage /> :
                   <Navigate to="/" replace />
               }
             />

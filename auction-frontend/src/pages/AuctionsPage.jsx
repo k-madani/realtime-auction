@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Filter, RefreshCw, SlidersHorizontal, X } from 'lucide-react';
-import { auctionsAPI } from '../services/api';
+import { auctionsAPI, watchlistAPI } from '../services/api';
 import AuctionCard from '../components/AuctionCard';
 
 const AuctionsPage = () => {
@@ -10,6 +10,7 @@ const AuctionsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [categories, setCategories] = useState([]);
+  const [watchlistIds, setWatchlistIds] = useState([]);
   const [filters, setFilters] = useState({
     status: '',
     category: '',
@@ -23,7 +24,17 @@ const AuctionsPage = () => {
   useEffect(() => {
     fetchAuctions();
     fetchCategories();
+    fetchWatchlistIds();
   }, []);
+
+  const fetchWatchlistIds = async () => {
+    try {
+      const response = await watchlistAPI.getWatchlistAuctionIds();
+      setWatchlistIds(response.data);
+    } catch (error) {
+      console.error('Failed to fetch watchlist:', error);
+    }
+  };
 
   const fetchCategories = async () => {
     try {
@@ -87,6 +98,23 @@ const AuctionsPage = () => {
 
   const handleCardClick = (auctionId) => {
     navigate(`/auctions/${auctionId}`);
+  };
+
+  const handleToggleWatchlist = async (auctionId) => {
+    try {
+      const isInWatchlist = watchlistIds.includes(auctionId);
+      
+      if (isInWatchlist) {
+        await watchlistAPI.removeFromWatchlist(auctionId);
+        setWatchlistIds(watchlistIds.filter(id => id !== auctionId));
+      } else {
+        await watchlistAPI.addToWatchlist(auctionId);
+        setWatchlistIds([...watchlistIds, auctionId]);
+      }
+    } catch (error) {
+      console.error('Failed to toggle watchlist:', error);
+      alert(error.response?.data?.message || 'Failed to update watchlist');
+    }
   };
 
   return (

@@ -62,4 +62,13 @@ export const usersAPI = {
   updateProfile: (data) => api.put('/users/profile', data),
 };
 
+// Watchlist API
+export const watchlistAPI = {
+  getMyWatchlist: () => api.get('/watchlist'),
+  addToWatchlist: (auctionId) => api.post(`/watchlist/auction/${auctionId}`),
+  removeFromWatchlist: (auctionId) => api.delete(`/watchlist/auction/${auctionId}`),
+  checkWatchlist: (auctionId) => api.get(`/watchlist/check/${auctionId}`),
+  getWatchlistAuctionIds: () => api.get('/watchlist/auction-ids'),
+};
+
 export default api;

@@ -5,16 +5,31 @@ import { auctionsAPI } from '../services/api';
 
 const CreateAuctionPage = () => {
   const navigate = useNavigate();
+  const [categories, setCategories] = useState([]);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     startingPrice: '',
     startTime: '',
     endTime: '',
-    imageUrl: ''
+    imageUrl: '',
+    category: 'ELECTRONICS'
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await auctionsAPI.getCategories();
+      setCategories(response.data);
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
+    }
+  };
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -109,6 +124,30 @@ const CreateAuctionPage = () => {
             />
             <p className="text-xs text-gray-500 mt-1">
               {formData.title.length}/100 characters
+            </p>
+          </div>
+
+          {/* Category */}
+          <div>
+            <label className="block text-sm font-semibold text-black mb-2">
+              <Gavel className="w-4 h-4 inline mr-2" />
+              Category *
+            </label>
+            <select
+              name="category"
+              value={formData.category}
+              onChange={handleChange}
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
+              required
+            >
+              {categories.map((cat) => (
+                <option key={cat.value} value={cat.value}>
+                  {cat.displayNameWithEmoji}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              Select the category that best describes your item
             </p>
           </div>
 

@@ -44,6 +44,11 @@ public class Auction {
     @Column(nullable = false)
     private AuctionStatus status = AuctionStatus.PENDING;
     
+    // NEW: Category field
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private AuctionCategory category = AuctionCategory.OTHER;
+    
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "seller_id", nullable = false)
     private User seller;

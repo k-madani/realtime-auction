@@ -9,8 +9,10 @@ const AuctionsPage = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [categories, setCategories] = useState([]);
   const [filters, setFilters] = useState({
     status: '',
+    category: '',
     minPrice: '',
     maxPrice: '',
     endTimeFilter: '',
@@ -20,7 +22,17 @@ const AuctionsPage = () => {
 
   useEffect(() => {
     fetchAuctions();
+    fetchCategories();
   }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await auctionsAPI.getCategories();
+      setCategories(response.data);
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
+    }
+  };
 
   const fetchAuctions = async () => {
     setLoading(true);
@@ -40,6 +52,7 @@ const AuctionsPage = () => {
       const searchParams = {
         keyword: searchTerm || null,
         status: filters.status || null,
+        category: filters.category || null,
         minPrice: filters.minPrice ? parseFloat(filters.minPrice) : null,
         maxPrice: filters.maxPrice ? parseFloat(filters.maxPrice) : null,
         endTimeFilter: filters.endTimeFilter || null,
@@ -63,6 +76,7 @@ const AuctionsPage = () => {
     setSearchTerm('');
     setFilters({
       status: '',
+      category: '',
       minPrice: '',
       maxPrice: '',
       endTimeFilter: '',
@@ -148,7 +162,24 @@ const AuctionsPage = () => {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+            {/* Category Filter */}
+            <div>
+              <label className="block text-sm font-semibold text-black mb-2">Category</label>
+              <select
+                value={filters.category}
+                onChange={(e) => handleFilterChange('category', e.target.value)}
+                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+              >
+                <option value="">All Categories</option>
+                {categories.map((cat) => (
+                  <option key={cat.value} value={cat.value}>
+                    {cat.displayNameWithEmoji}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {/* Status Filter */}
             <div>
               <label className="block text-sm font-semibold text-black mb-2">Status</label>

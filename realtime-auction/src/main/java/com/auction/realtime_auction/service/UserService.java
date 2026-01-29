@@ -41,9 +41,9 @@ public class UserService {
                 .filter(a -> a.getStatus() == Auction.AuctionStatus.ACTIVE)
                 .count();
         int totalBidsPlaced = userBids.size();
-        int auctionsWon = (int) userAuctions.stream()
-                .filter(a -> a.getStatus() == Auction.AuctionStatus.ENDED)
-                .filter(a -> a.getWinner() != null && a.getWinner().getId().equals(user.getId()))
+        int auctionsWon = (int) userBids.stream()
+                .filter(b -> b.getAuction().getStatus() == Auction.AuctionStatus.ENDED)
+                .filter(Bid::getIsWinning)
                 .count();
         
         return new UserProfileResponse(
@@ -85,6 +85,7 @@ public class UserService {
         
         int currentlyWinning = (int) userBids.stream()
                 .filter(Bid::getIsWinning)
+                .filter(b -> b.getAuction().getStatus() == Auction.AuctionStatus.ACTIVE)
                 .map(b -> b.getAuction().getId())
                 .distinct()
                 .count();
@@ -173,6 +174,8 @@ public class UserService {
                 auction.getStartTime(),
                 auction.getEndTime(),
                 auction.getStatus().name(),
+                auction.getCategory().name(),
+                auction.getCategory().getDisplayNameWithEmoji(),
                 auction.getSeller().getUsername(),
                 auction.getWinner() != null ? auction.getWinner().getUsername() : null,
                 auction.getImageUrl(),

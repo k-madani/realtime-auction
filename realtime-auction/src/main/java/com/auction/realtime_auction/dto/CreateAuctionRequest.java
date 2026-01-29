@@ -32,4 +32,8 @@ public class CreateAuctionRequest {
     private LocalDateTime endTime;
     
     private String imageUrl;
+    
+    // NEW: Category field
+    @NotBlank(message = "Category is required")
+    private String category;  // Will be enum value like "ELECTRONICS"
 }

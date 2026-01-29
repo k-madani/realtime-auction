@@ -1,6 +1,7 @@
 package com.auction.realtime_auction.repository;
 
 import com.auction.realtime_auction.model.Auction;
+import com.auction.realtime_auction.model.AuctionCategory;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -19,6 +20,12 @@ public interface AuctionRepository extends JpaRepository<Auction, Long> {
     // Find auctions by seller
     List<Auction> findBySellerId(Long sellerId);
     
+    // NEW: Find by category
+    List<Auction> findByCategory(AuctionCategory category);
+    
+    // NEW: Find by category and status
+    List<Auction> findByCategoryAndStatus(AuctionCategory category, Auction.AuctionStatus status);
+    
     // Find auctions ending soon (within next hour)
     @Query("SELECT a FROM Auction a WHERE a.status = 'ACTIVE' AND a.endTime BETWEEN ?1 AND ?2")
     List<Auction> findEndingSoon(LocalDateTime now, LocalDateTime oneHourLater);
@@ -26,8 +33,6 @@ public interface AuctionRepository extends JpaRepository<Auction, Long> {
     // Find expired auctions that need to be closed
     @Query("SELECT a FROM Auction a WHERE a.status = 'ACTIVE' AND a.endTime < ?1")
     List<Auction> findExpiredAuctions(LocalDateTime now);
-    
-    // ============== SEARCH & FILTER QUERIES ==============
     
     /**
      * Search auctions by keyword (title or description)
@@ -38,18 +43,20 @@ public interface AuctionRepository extends JpaRepository<Auction, Long> {
     List<Auction> searchByKeyword(@Param("keyword") String keyword);
     
     /**
-     * Advanced search with filters
+     * Advanced search with filters (UPDATED with category)
      */
     @Query("SELECT a FROM Auction a WHERE " +
            "(:keyword IS NULL OR LOWER(a.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
            "LOWER(a.description) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
            "(:status IS NULL OR a.status = :status) AND " +
+           "(:category IS NULL OR a.category = :category) AND " +
            "(:minPrice IS NULL OR a.currentPrice >= :minPrice) AND " +
            "(:maxPrice IS NULL OR a.currentPrice <= :maxPrice) AND " +
            "(:endsBefore IS NULL OR a.endTime <= :endsBefore)")
     List<Auction> searchWithFilters(
             @Param("keyword") String keyword,
             @Param("status") Auction.AuctionStatus status,
+            @Param("category") AuctionCategory category,
             @Param("minPrice") BigDecimal minPrice,
             @Param("maxPrice") BigDecimal maxPrice,
             @Param("endsBefore") LocalDateTime endsBefore

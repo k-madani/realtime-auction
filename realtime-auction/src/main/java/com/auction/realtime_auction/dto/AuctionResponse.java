@@ -19,6 +19,8 @@ public class AuctionResponse {
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private String status;
+    private String category;           // NEW
+    private String categoryDisplay;    // NEW
     private String sellerUsername;
     private String winnerUsername;
     private String imageUrl;

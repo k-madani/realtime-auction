@@ -32,6 +32,30 @@ public class User {
     @Column(nullable = false)
     private String role = "USER";
     
+    // Overall rating (average of all ratings received)
+    @Column(nullable = false)
+    private Double overallRating = 0.0;
+    
+    // Rating as seller
+    @Column(nullable = false)
+    private Double sellerRating = 0.0;
+    
+    // Rating as buyer
+    @Column(nullable = false)
+    private Double buyerRating = 0.0;
+    
+    // Total reviews received
+    @Column(nullable = false)
+    private Integer totalReviews = 0;
+    
+    // Reviews received as seller
+    @Column(nullable = false)
+    private Integer sellerReviews = 0;
+    
+    // Reviews received as buyer
+    @Column(nullable = false)
+    private Integer buyerReviews = 0;
+    
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;

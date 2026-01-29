@@ -1,7 +1,7 @@
 import React from 'react';
-import { Clock, TrendingUp, User, Gavel, Heart } from 'lucide-react';
+import { Clock, TrendingUp, User, Gavel, Heart, Star } from 'lucide-react';
 
-const AuctionCard = ({ auction, onClick, isInWatchlist, onToggleWatchlist }) => {
+const AuctionCard = ({ auction, onClick, isInWatchlist, onToggleWatchlist, sellerRating }) => {
   const getTimeRemaining = (endTime) => {
     const end = new Date(endTime);
     const now = new Date();
@@ -107,9 +107,10 @@ const AuctionCard = ({ auction, onClick, isInWatchlist, onToggleWatchlist }) => 
               <span>{auction.totalBids || 0} bids</span>
             </div>
             
-            {auction.winnerUsername && (
-              <div className="text-gray-600">
-                Leader: <span className="font-semibold text-black">{auction.winnerUsername}</span>
+            {sellerRating && sellerRating > 0 && (
+              <div className="flex items-center gap-1 text-gray-600">
+                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                <span className="font-semibold">{sellerRating.toFixed(1)}</span>
               </div>
             )}
           </div>

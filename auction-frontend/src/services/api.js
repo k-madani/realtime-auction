@@ -71,4 +71,12 @@ export const watchlistAPI = {
   getWatchlistAuctionIds: () => api.get('/watchlist/auction-ids'),
 };
 
+// Reviews API
+export const reviewsAPI = {
+  createReview: (auctionId, reviewData) => api.post(`/reviews/auction/${auctionId}`, reviewData),
+  getUserRatings: (username) => api.get(`/reviews/user/${username}`),
+  getAuctionReviews: (auctionId) => api.get(`/reviews/auction/${auctionId}`),
+  canReviewAuction: (auctionId) => api.get(`/reviews/auction/${auctionId}/can-review`),
+};
+
 export default api;

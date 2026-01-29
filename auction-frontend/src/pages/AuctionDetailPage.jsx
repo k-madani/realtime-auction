@@ -1,17 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clock, User, TrendingUp, Gavel, Wifi, WifiOff } from 'lucide-react';
-import { auctionsAPI, bidsAPI } from '../services/api';
+import { ArrowLeft, Clock, User, TrendingUp, Gavel, Wifi, WifiOff, Star } from 'lucide-react';
+import { auctionsAPI, bidsAPI, reviewsAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import BidPanel from '../components/BidPanel';
+import ReviewModal from '../components/ReviewModal';
+import StarRating from '../components/StarRating';
 import websocketService from '../services/websocket';
 
 const AuctionDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  
   const [auction, setAuction] = useState(null);
   const [bids, setBids] = useState([]);
   const [loading, setLoading] = useState(true);
   const [wsConnected, setWsConnected] = useState(false);
+  
+  // Review state
+  const [canReview, setCanReview] = useState(false);
+  const [reviews, setReviews] = useState([]);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [revieweeRole, setRevieweeRole] = useState(null);
 
   useEffect(() => {
     fetchAuctionDetails();
@@ -35,10 +46,17 @@ const AuctionDetailPage = () => {
     };
   }, [id]);
 
+  useEffect(() => {
+    if (auction && auction.status === 'ENDED') {
+      checkCanReview();
+      fetchReviews();
+    }
+  }, [auction]);
+
   const subscribeToAuction = () => {
     // Subscribe to bid updates
     websocketService.subscribeToAuction(id, (bidNotification) => {
-      console.log('🔔 New bid received!', bidNotification);
+      console.log('📢 New bid received!', bidNotification);
       
       // Update auction with new bid data
       setAuction(prev => ({
@@ -50,7 +68,7 @@ const AuctionDetailPage = () => {
 
       // Add new bid to bid history at top
       const newBid = {
-        id: Date.now(), // Temporary ID
+        id: Date.now(),
         auctionId: id,
         bidderUsername: bidNotification.bidderUsername,
         amount: bidNotification.amount,
@@ -59,19 +77,17 @@ const AuctionDetailPage = () => {
       };
 
       setBids(prevBids => {
-        // Mark all other bids as not winning
         const updatedBids = prevBids.map(bid => ({
           ...bid,
           isWinning: false
         }));
-        // Add new bid at the top
         return [newBid, ...updatedBids];
       });
     });
 
     // Subscribe to status updates
     websocketService.subscribeToAuctionStatus(id, (statusNotification) => {
-      console.log('🔔 Status update received!', statusNotification);
+      console.log('📢 Status update received!', statusNotification);
       setAuction(prev => ({
         ...prev,
         status: statusNotification.status
@@ -99,9 +115,40 @@ const AuctionDetailPage = () => {
     }
   };
 
+  const checkCanReview = async () => {
+    try {
+      const response = await reviewsAPI.canReviewAuction(id);
+      setCanReview(response.data.canReview);
+      
+      if (response.data.canReview && currentUser) {
+        const isWinner = auction.winnerUsername === currentUser.username;
+        setRevieweeRole(isWinner ? 'SELLER' : 'BUYER');
+      }
+    } catch (error) {
+      console.error('Failed to check review status:', error);
+    }
+  };
+
+  const fetchReviews = async () => {
+    try {
+      const response = await reviewsAPI.getAuctionReviews(id);
+      setReviews(response.data);
+    } catch (error) {
+      console.error('Failed to fetch reviews:', error);
+    }
+  };
+
   const handleBidSuccess = () => {
-    // Don't need to fetch manually - WebSocket will update
     console.log('✅ Bid placed, waiting for WebSocket update...');
+  };
+
+  const handleReviewSubmitted = (success) => {
+    setShowReviewModal(false);
+    if (success) {
+      setCanReview(false);
+      fetchReviews();
+      alert('Review submitted successfully!');
+    }
   };
 
   const getTimeRemaining = () => {
@@ -192,6 +239,13 @@ const AuctionDetailPage = () => {
                   <User className="w-4 h-4" />
                   <span>Seller: <span className="font-semibold text-black">{auction.sellerUsername}</span></span>
                 </div>
+                {auction.categoryDisplay && (
+                  <div className="mt-2">
+                    <span className="inline-block px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-semibold border border-gray-300">
+                      {auction.categoryDisplay}
+                    </span>
+                  </div>
+                )}
               </div>
               <span className={`px-4 py-2 rounded-lg text-sm font-bold ${
                 auction.status === 'ACTIVE' ? 'bg-accent-green text-white' :
@@ -264,6 +318,57 @@ const AuctionDetailPage = () => {
               </div>
             )}
           </div>
+
+          {/* Review Section - Only show for ended auctions */}
+          {auction.status === 'ENDED' && (
+            <div className="bg-white rounded-lg border-2 border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold text-black flex items-center gap-2">
+                  <Star className="w-6 h-6 text-accent-gold" />
+                  Reviews
+                </h2>
+                
+                {canReview && (
+                  <button
+                    onClick={() => setShowReviewModal(true)}
+                    className="px-4 py-2 bg-accent-gold text-black rounded-lg hover:bg-yellow-500 font-semibold transition"
+                  >
+                    Leave a Review
+                  </button>
+                )}
+              </div>
+
+              {reviews.length === 0 ? (
+                <p className="text-gray-600 text-center py-8">
+                  No reviews yet. {canReview && 'Be the first to leave a review!'}
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {reviews.map((review) => (
+                    <div key={review.id} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <p className="font-semibold text-black">{review.reviewerUsername}</p>
+                          <p className="text-xs text-gray-500">
+                            Reviewed {review.revieweeUsername} as {review.revieweeRole.toLowerCase()}
+                          </p>
+                        </div>
+                        <StarRating rating={review.rating} size="sm" showNumber={false} />
+                      </div>
+                      
+                      {review.comment && (
+                        <p className="text-gray-700 mt-2">{review.comment}</p>
+                      )}
+                      
+                      <p className="text-xs text-gray-500 mt-2">
+                        {new Date(review.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Bid Panel - Right Side */}
@@ -271,6 +376,14 @@ const AuctionDetailPage = () => {
           <BidPanel auction={auction} onBidSuccess={handleBidSuccess} />
         </div>
       </div>
+
+      {/* Review Modal */}
+      <ReviewModal
+        isOpen={showReviewModal}
+        onClose={handleReviewSubmitted}
+        auction={auction}
+        revieweeRole={revieweeRole}
+      />
     </div>
   );
 };

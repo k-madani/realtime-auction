@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clock, User, TrendingUp, Gavel, Wifi, WifiOff, Star } from 'lucide-react';
-import { auctionsAPI, bidsAPI, reviewsAPI } from '../services/api';
+import { ArrowLeft, Clock, User, TrendingUp, Gavel, Wifi, WifiOff, Star, ChevronLeft, ChevronRight, CreditCard, Package } from 'lucide-react';
+import { auctionsAPI, bidsAPI, reviewsAPI, paymentsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import BidPanel from '../components/BidPanel';
 import ReviewModal from '../components/ReviewModal';
@@ -17,6 +17,14 @@ const AuctionDetailPage = () => {
   const [bids, setBids] = useState([]);
   const [loading, setLoading] = useState(true);
   const [wsConnected, setWsConnected] = useState(false);
+  
+  // Image carousel state
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  
+  // Payment state
+  const [payment, setPayment] = useState(null);
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentError, setPaymentError] = useState('');
   
   // Review state
   const [canReview, setCanReview] = useState(false);
@@ -50,6 +58,7 @@ const AuctionDetailPage = () => {
     if (auction && auction.status === 'ENDED') {
       checkCanReview();
       fetchReviews();
+      checkPaymentStatus();
     }
   }, [auction]);
 
@@ -115,6 +124,16 @@ const AuctionDetailPage = () => {
     }
   };
 
+  const checkPaymentStatus = async () => {
+    try {
+      const response = await paymentsAPI.getByAuctionId(id);
+      setPayment(response.data);
+    } catch (error) {
+      // No payment exists yet - this is fine
+      console.log('No payment found for auction');
+    }
+  };
+
   const checkCanReview = async () => {
     try {
       const response = await reviewsAPI.canReviewAuction(id);
@@ -151,6 +170,41 @@ const AuctionDetailPage = () => {
     }
   };
 
+  // NEW: Handle payment
+  const handlePayNow = async () => {
+    setPaymentLoading(true);
+    setPaymentError('');
+
+    try {
+      const response = await paymentsAPI.createCheckout(id);
+      
+      // Redirect to Stripe Checkout
+      window.location.href = response.data.checkoutUrl;
+    } catch (error) {
+      setPaymentError(error.response?.data?.message || 'Failed to create checkout session');
+      console.error('Payment error:', error);
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  // NEW: Image navigation
+  const nextImage = () => {
+    if (auction?.imageUrls && auction.imageUrls.length > 0) {
+      setCurrentImageIndex((prev) => 
+        prev === auction.imageUrls.length - 1 ? 0 : prev + 1
+      );
+    }
+  };
+
+  const prevImage = () => {
+    if (auction?.imageUrls && auction.imageUrls.length > 0) {
+      setCurrentImageIndex((prev) => 
+        prev === 0 ? auction.imageUrls.length - 1 : prev - 1
+      );
+    }
+  };
+
   const getTimeRemaining = () => {
     if (!auction) return '';
     const end = new Date(auction.endTime);
@@ -167,6 +221,10 @@ const AuctionDetailPage = () => {
     if (hours > 0) return `${hours}h ${minutes}m`;
     return `${minutes}m remaining`;
   };
+
+  // Check if current user is the winner
+  const isWinner = currentUser && auction && auction.winnerUsername === currentUser.username;
+  const showPaymentButton = auction?.status === 'ENDED' && isWinner && !payment;
 
   if (loading) {
     return (
@@ -225,10 +283,127 @@ const AuctionDetailPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Content - Left Side */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Image */}
-          <div className="bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg h-96 flex items-center justify-center border-2 border-black">
-            <Gavel className="w-32 h-32 text-gray-400" />
+          {/* Image Carousel */}
+          <div className="relative bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg h-96 flex items-center justify-center border-2 border-black overflow-hidden">
+            {auction.imageUrls && auction.imageUrls.length > 0 ? (
+              <>
+                {/* Main Image */}
+                <img
+                  src={auction.imageUrls[currentImageIndex]}
+                  alt={`${auction.title} - Image ${currentImageIndex + 1}`}
+                  className="w-full h-full object-contain"
+                />
+
+                {/* Navigation Arrows (only show if multiple images) */}
+                {auction.imageUrls.length > 1 && (
+                  <>
+                    <button
+                      onClick={prevImage}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 bg-black bg-opacity-50 hover:bg-opacity-75 text-white p-2 rounded-full transition"
+                    >
+                      <ChevronLeft className="w-6 h-6" />
+                    </button>
+                    <button
+                      onClick={nextImage}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 bg-black bg-opacity-50 hover:bg-opacity-75 text-white p-2 rounded-full transition"
+                    >
+                      <ChevronRight className="w-6 h-6" />
+                    </button>
+
+                    {/* Image Counter */}
+                    <div className="absolute bottom-4 right-4 bg-black bg-opacity-75 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                      {currentImageIndex + 1} / {auction.imageUrls.length}
+                    </div>
+                  </>
+                )}
+
+                {/* Thumbnail Strip (bottom) */}
+                {auction.imageUrls.length > 1 && (
+                  <div className="absolute bottom-4 left-4 flex gap-2">
+                    {auction.imageUrls.map((url, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setCurrentImageIndex(index)}
+                        className={`w-12 h-12 rounded border-2 overflow-hidden transition ${
+                          index === currentImageIndex
+                            ? 'border-accent-gold scale-110'
+                            : 'border-white opacity-60 hover:opacity-100'
+                        }`}
+                      >
+                        <img
+                          src={url}
+                          alt={`Thumbnail ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              /* Placeholder if no images */
+              <Gavel className="w-32 h-32 text-gray-400" />
+            )}
           </div>
+
+          {/* Payment Alert (Winner Only - After Auction Ends) */}
+          {showPaymentButton && (
+            <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg border-2 border-black p-6 text-white">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center flex-shrink-0">
+                  <Package className="w-6 h-6 text-green-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold mb-2">🎉 Congratulations! You Won!</h3>
+                  <p className="text-green-100 mb-4">
+                    Complete your payment to finalize the purchase and receive shipping details.
+                  </p>
+                  {paymentError && (
+                    <p className="text-red-200 bg-red-700 bg-opacity-50 rounded p-2 mb-4 text-sm">
+                      {paymentError}
+                    </p>
+                  )}
+                  <button
+                    onClick={handlePayNow}
+                    disabled={paymentLoading}
+                    className="px-6 py-3 bg-white text-green-600 rounded-lg hover:bg-gray-100 font-bold transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {paymentLoading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-green-600"></div>
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard className="w-5 h-5" />
+                        Pay ${auction.currentPrice.toFixed(2)} Now
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Payment Completed Alert */}
+          {payment && payment.status === 'COMPLETED' && (
+            <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg border-2 border-black p-6 text-white">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center flex-shrink-0">
+                  <CreditCard className="w-6 h-6 text-blue-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold mb-2">✅ Payment Completed</h3>
+                  <p className="text-blue-100 mb-2">
+                    Your payment of ${payment.amount.toFixed(2)} has been processed successfully.
+                  </p>
+                  <p className="text-blue-200 text-sm">
+                    Payment ID: #{payment.id} • {new Date(payment.paidAt).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Auction Info */}
           <div className="bg-white rounded-lg border-2 border-black p-6">

@@ -13,6 +13,9 @@ import ProfilePage from './pages/ProfilePage';
 import CreateAuctionPage from './pages/CreateAuctionPage';
 import MyAuctionsPage from './pages/MyAuctionsPage';
 import WatchlistPage from './pages/WatchlistPage';
+import PaymentSuccessPage from './pages/PaymentSuccessPage';
+import PaymentCancelPage from './pages/PaymentCancelPage';
+import MyPaymentsPage from './pages/MyPaymentsPage';
 
 const AppContent = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -116,6 +119,9 @@ const AppContent = () => {
                   <Navigate to="/" replace />
               }
             />
+            <Route path="/payment/success" element={<PaymentSuccessPage />} />
+            <Route path="/payment/cancel" element={<PaymentCancelPage />} />
+            <Route path="/my-payments" element={<MyPaymentsPage />} />
 
             {/* Catch all - redirect to home */}
             <Route path="*" element={<Navigate to="/" replace />} />

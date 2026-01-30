@@ -1,9 +1,8 @@
 package com.auction.realtime_auction.service;
 
 import com.auction.realtime_auction.dto.AuctionResponse;
-import com.auction.realtime_auction.dto.AuctionSearchRequest;
-import com.auction.realtime_auction.dto.AuctionStatusNotification;
 import com.auction.realtime_auction.dto.CreateAuctionRequest;
+import com.auction.realtime_auction.dto.PriceInsightsResponse;
 import com.auction.realtime_auction.exception.BadRequestException;
 import com.auction.realtime_auction.exception.ResourceNotFoundException;
 import com.auction.realtime_auction.exception.UnauthorizedException;
@@ -16,8 +15,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.util.Comparator;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -27,26 +28,78 @@ public class AuctionService {
     
     private final AuctionRepository auctionRepository;
     private final UserRepository userRepository;
-    private final WebSocketNotificationService notificationService;
     
+    /**
+     * Get all auctions with optional filters
+     */
+    public List<AuctionResponse> getAllAuctions(String status, String category, String search) {
+        List<Auction> auctions = auctionRepository.findAll();
+        
+        // Apply filters
+        if (status != null && !status.isEmpty()) {
+            try {
+                Auction.AuctionStatus auctionStatus = Auction.AuctionStatus.valueOf(status.toUpperCase());
+                auctions = auctions.stream()
+                        .filter(a -> a.getStatus() == auctionStatus)
+                        .collect(Collectors.toList());
+            } catch (IllegalArgumentException e) {
+                // Invalid status, ignore filter
+            }
+        }
+        
+        if (category != null && !category.isEmpty()) {
+            try {
+                AuctionCategory auctionCategory = AuctionCategory.valueOf(category.toUpperCase());
+                auctions = auctions.stream()
+                        .filter(a -> a.getCategory() == auctionCategory)
+                        .collect(Collectors.toList());
+            } catch (IllegalArgumentException e) {
+                // Invalid category, ignore filter
+            }
+        }
+        
+        if (search != null && !search.isEmpty()) {
+            String searchLower = search.toLowerCase();
+            auctions = auctions.stream()
+                    .filter(a -> a.getTitle().toLowerCase().contains(searchLower) ||
+                               (a.getDescription() != null && a.getDescription().toLowerCase().contains(searchLower)))
+                    .collect(Collectors.toList());
+        }
+        
+        return auctions.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Get auction by ID
+     */
+    public AuctionResponse getAuctionById(Long id) {
+        Auction auction = auctionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Auction not found: " + id));
+        return mapToResponse(auction);
+    }
+    
+    /**
+     * Create new auction
+     */
     @Transactional
     public AuctionResponse createAuction(CreateAuctionRequest request, String username) {
         User seller = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "User not found: " + username));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
         
-        // Validate end time is after start time
+        // Validate times
+        LocalDateTime now = LocalDateTime.now();
+        if (request.getStartTime().isBefore(now)) {
+            throw new BadRequestException("Start time must be in the future");
+        }
         if (request.getEndTime().isBefore(request.getStartTime())) {
-            throw new BadRequestException(
-                    "End time must be after start time");
+            throw new BadRequestException("End time must be after start time");
         }
         
-        // Parse category
-        AuctionCategory category;
-        try {
-            category = AuctionCategory.valueOf(request.getCategory().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new BadRequestException("Invalid category: " + request.getCategory());
+        AuctionCategory category = request.getCategory();
+        if (category == null) {
+            category = AuctionCategory.OTHER;
         }
         
         Auction auction = new Auction();
@@ -58,241 +111,233 @@ public class AuctionService {
         auction.setEndTime(request.getEndTime());
         auction.setStatus(Auction.AuctionStatus.PENDING);
         auction.setSeller(seller);
-        auction.setImageUrl(request.getImageUrl());
         auction.setCategory(category);
+        
+        // Handle multiple images
+        if (request.getImageUrls() != null && !request.getImageUrls().isEmpty()) {
+            auction.setImageUrls(new ArrayList<>(request.getImageUrls()));
+        }
         
         auction = auctionRepository.save(auction);
         
         return mapToResponse(auction);
     }
     
-    public AuctionResponse getAuctionById(Long id) {
+    /**
+     * Update auction
+     */
+    @Transactional
+    public AuctionResponse updateAuction(Long id, CreateAuctionRequest request, String username) {
         Auction auction = auctionRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Auction not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Auction not found: " + id));
+        
+        // Check if user is the seller
+        if (!auction.getSeller().getUsername().equals(username)) {
+            throw new UnauthorizedException("You can only update your own auctions");
+        }
+        
+        // Can only update PENDING auctions
+        if (auction.getStatus() != Auction.AuctionStatus.PENDING) {
+            throw new BadRequestException("Can only update auctions that haven't started yet");
+        }
+        
+        // Update fields
+        auction.setTitle(request.getTitle());
+        auction.setDescription(request.getDescription());
+        auction.setStartingPrice(request.getStartingPrice());
+        auction.setCurrentPrice(request.getStartingPrice());
+        auction.setStartTime(request.getStartTime());
+        auction.setEndTime(request.getEndTime());
+        auction.setCategory(request.getCategory());
+        
+        // Update images
+        if (request.getImageUrls() != null && !request.getImageUrls().isEmpty()) {
+            auction.setImageUrls(new ArrayList<>(request.getImageUrls()));
+        }
+        
+        auction = auctionRepository.save(auction);
         return mapToResponse(auction);
     }
     
-    public List<AuctionResponse> getAllActiveAuctions() {
+    /**
+     * Cancel auction
+     */
+    @Transactional
+    public void cancelAuction(Long id, String username) {
+        Auction auction = auctionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Auction not found: " + id));
+        
+        // Check if user is the seller
+        if (!auction.getSeller().getUsername().equals(username)) {
+            throw new UnauthorizedException("You can only cancel your own auctions");
+        }
+        
+        // Can only cancel PENDING or ACTIVE auctions with no bids
+        if (auction.getStatus() == Auction.AuctionStatus.ENDED) {
+            throw new BadRequestException("Cannot cancel an ended auction");
+        }
+        
+        if (auction.getTotalBids() > 0) {
+            throw new BadRequestException("Cannot cancel auction with existing bids");
+        }
+        
+        auction.setStatus(Auction.AuctionStatus.CANCELLED);
+        auctionRepository.save(auction);
+    }
+    
+    /**
+     * Get auctions by seller username
+     */
+    public List<AuctionResponse> getAuctionsBySeller(String username) {
+        User seller = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+        
+        return auctionRepository.findBySellerId(seller.getId())
+                .stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Get active auctions
+     */
+    public List<AuctionResponse> getActiveAuctions() {
         return auctionRepository.findByStatus(Auction.AuctionStatus.ACTIVE)
                 .stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
     
-    public List<AuctionResponse> getMyAuctions(String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "User not found: " + username));
-        
-        return auctionRepository.findBySellerId(user.getId())
+    /**
+     * Search auctions by query
+     */
+    public List<AuctionResponse> searchAuctions(String query) {
+        return auctionRepository.searchAuctions(query)
                 .stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
     
     /**
-     * Search and filter auctions
+     * Get price insights for an auction based on similar completed auctions
      */
-    public List<AuctionResponse> searchAuctions(AuctionSearchRequest request) {
-        List<Auction> auctions;
-        
-        // Determine end time filter
-        LocalDateTime endsBefore = null;
-        if (request.getEndTimeFilter() != null) {
-            LocalDateTime now = LocalDateTime.now();
-            switch (request.getEndTimeFilter()) {
-                case "1h":
-                    endsBefore = now.plusHours(1);
-                    break;
-                case "24h":
-                    endsBefore = now.plusHours(24);
-                    break;
-                case "7d":
-                    endsBefore = now.plusDays(7);
-                    break;
-            }
-        }
-        
-        // Parse status
-        Auction.AuctionStatus status = null;
-        if (request.getStatus() != null && !request.getStatus().isEmpty()) {
-            try {
-                status = Auction.AuctionStatus.valueOf(request.getStatus().toUpperCase());
-            } catch (IllegalArgumentException e) {
-                // Invalid status, ignore
-            }
-        }
-        
-        // Parse category
-        AuctionCategory category = null;
-        if (request.getCategory() != null && !request.getCategory().isEmpty()) {
-            try {
-                category = AuctionCategory.valueOf(request.getCategory().toUpperCase());
-            } catch (IllegalArgumentException e) {
-                // Invalid category, ignore
-            }
-        }
-        
-        // Execute search with filters
-        auctions = auctionRepository.searchWithFilters(
-                request.getKeyword(),
-                status,
-                category,
-                request.getMinPrice(),
-                request.getMaxPrice(),
-                endsBefore
-        );
-        
-        // Apply sorting
-        if (request.getSortBy() != null) {
-            switch (request.getSortBy()) {
-                case "endingSoon":
-                    auctions.sort(Comparator.comparing(Auction::getEndTime));
-                    break;
-                case "newest":
-                    auctions.sort(Comparator.comparing(Auction::getCreatedAt).reversed());
-                    break;
-                case "priceLow":
-                    auctions.sort(Comparator.comparing(Auction::getCurrentPrice));
-                    break;
-                case "priceHigh":
-                    auctions.sort(Comparator.comparing(Auction::getCurrentPrice).reversed());
-                    break;
-                case "mostBids":
-                    auctions.sort(Comparator.comparing(Auction::getTotalBids).reversed());
-                    break;
-            }
-        }
-        
-        return auctions.stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-    }
-    
-    /**
-     * Get auctions ending soon (within 1 hour)
-     */
-    public List<AuctionResponse> getEndingSoonAuctions() {
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime oneHourLater = now.plusHours(1);
-        
-        return auctionRepository.findEndingSoon(now, oneHourLater)
-                .stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-    }
-    
-    /**
-     * Get auctions by category
-     */
-    public List<AuctionResponse> getAuctionsByCategory(String categoryStr) {
-        try {
-            AuctionCategory category = AuctionCategory.valueOf(categoryStr.toUpperCase());
-            return auctionRepository.findByCategoryAndStatus(category, Auction.AuctionStatus.ACTIVE)
-                    .stream()
-                    .map(this::mapToResponse)
-                    .collect(Collectors.toList());
-        } catch (IllegalArgumentException e) {
-            throw new BadRequestException("Invalid category: " + categoryStr);
-        }
-    }
-    
-    @Transactional
-    public void startAuction(Long auctionId) {
+    public PriceInsightsResponse getPriceInsights(Long auctionId) {
         Auction auction = auctionRepository.findById(auctionId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Auction not found with id: " + auctionId));
+                .orElseThrow(() -> new ResourceNotFoundException("Auction not found: " + auctionId));
         
-        if (auction.getStatus() != Auction.AuctionStatus.PENDING) {
-            throw new BadRequestException(
-                    "Auction cannot be started. Current status: " + auction.getStatus());
-        }
-        
-        auction.setStatus(Auction.AuctionStatus.ACTIVE);
-        auctionRepository.save(auction);
-        
-        // Send WebSocket notification
-        AuctionStatusNotification notification = new AuctionStatusNotification(
-                auctionId,
-                "ACTIVE",
-                "Auction has started!",
-                null
+        // Get completed auctions in same category
+        List<Auction> completedAuctions = auctionRepository.findByCategoryAndStatus(
+            auction.getCategory(),
+            Auction.AuctionStatus.ENDED
         );
-        notificationService.sendAuctionStatusNotification(notification);
-    }
-    
-    @Transactional
-    public void endAuction(Long auctionId) {
-        Auction auction = auctionRepository.findById(auctionId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Auction not found with id: " + auctionId));
         
-        if (auction.getStatus() != Auction.AuctionStatus.ACTIVE) {
-            throw new BadRequestException(
-                    "Only active auctions can be ended. Current status: " + auction.getStatus());
-        }
-        
-        auction.setStatus(Auction.AuctionStatus.ENDED);
-        auctionRepository.save(auction);
-        
-        // Send WebSocket notification
-        String winnerUsername = auction.getWinner() != null ? auction.getWinner().getUsername() : null;
-        AuctionStatusNotification notification = new AuctionStatusNotification(
-                auctionId,
-                "ENDED",
-                "Auction has ended!",
-                winnerUsername
-        );
-        notificationService.sendAuctionStatusNotification(notification);
-    }
-    
-    @Transactional
-    public void cancelAuction(Long auctionId, String username) {
-        Auction auction = auctionRepository.findById(auctionId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Auction not found with id: " + auctionId));
-        
-        if (!auction.getSeller().getUsername().equals(username)) {
-            throw new UnauthorizedException(
-                    "Only the seller can cancel this auction");
-        }
-        
-        if (auction.getStatus() == Auction.AuctionStatus.ENDED) {
-            throw new BadRequestException(
-                    "Cannot cancel an auction that has already ended");
-        }
-        
-        auction.setStatus(Auction.AuctionStatus.CANCELLED);
-        auctionRepository.save(auction);
-        
-        // Send WebSocket notification
-        AuctionStatusNotification notification = new AuctionStatusNotification(
-                auctionId,
-                "CANCELLED",
-                "Auction has been cancelled by the seller",
-                null
-        );
-        notificationService.sendAuctionStatusNotification(notification);
-    }
-    
-    private AuctionResponse mapToResponse(Auction auction) {
-        return new AuctionResponse(
-                auction.getId(),
-                auction.getTitle(),
-                auction.getDescription(),
-                auction.getStartingPrice(),
+        if (completedAuctions.isEmpty()) {
+            // No data available
+            return new PriceInsightsResponse(
                 auction.getCurrentPrice(),
-                auction.getStartTime(),
-                auction.getEndTime(),
-                auction.getStatus().name(),
-                auction.getCategory().name(),
-                auction.getCategory().getDisplayNameWithEmoji(),
-                auction.getSeller().getUsername(),
-                auction.getWinner() != null ? auction.getWinner().getUsername() : null,
-                auction.getImageUrl(),
-                auction.getTotalBids(),
-                auction.getCreatedAt()
+                null,
+                null,
+                null,
+                0,
+                "insufficient_data",
+                0,
+                "Not enough historical data for price comparison."
+            );
+        }
+        
+        // Calculate statistics
+        BigDecimal sum = BigDecimal.ZERO;
+        BigDecimal min = completedAuctions.get(0).getCurrentPrice();
+        BigDecimal max = completedAuctions.get(0).getCurrentPrice();
+        
+        for (Auction completedAuction : completedAuctions) {
+            BigDecimal price = completedAuction.getCurrentPrice();
+            sum = sum.add(price);
+            
+            if (price.compareTo(min) < 0) min = price;
+            if (price.compareTo(max) > 0) max = price;
+        }
+        
+        BigDecimal average = sum.divide(
+            BigDecimal.valueOf(completedAuctions.size()),
+            2,
+            RoundingMode.HALF_UP
         );
+        
+        // Calculate percentage difference
+        BigDecimal difference = auction.getCurrentPrice().subtract(average);
+        BigDecimal percentageDiff = difference
+            .divide(average, 4, RoundingMode.HALF_UP)
+            .multiply(BigDecimal.valueOf(100));
+        
+        int percentageInt = percentageDiff.intValue();
+        
+        // Determine comparison category
+        String comparison;
+        String recommendation;
+        
+        if (percentageInt < -10) {
+            comparison = "below_average";
+            recommendation = "Great deal! This price is significantly below average for this category.";
+        } else if (percentageInt > 10) {
+            comparison = "above_average";
+            recommendation = "Price is above average. Consider if this item has unique features that justify the premium.";
+        } else {
+            comparison = "average";
+            recommendation = "Fair price. This is in line with similar items in this category.";
+        }
+        
+        return new PriceInsightsResponse(
+            auction.getCurrentPrice(),
+            average,
+            min,
+            max,
+            completedAuctions.size(),
+            comparison,
+            percentageInt,
+            recommendation
+        );
+    }
+    
+    /**
+     * Map Auction entity to AuctionResponse DTO
+     */
+    private AuctionResponse mapToResponse(Auction auction) {
+        AuctionResponse response = new AuctionResponse();
+        response.setId(auction.getId());
+        response.setTitle(auction.getTitle());
+        response.setDescription(auction.getDescription());
+        response.setStartingPrice(auction.getStartingPrice());
+        response.setCurrentPrice(auction.getCurrentPrice());
+        response.setStartTime(auction.getStartTime());
+        response.setEndTime(auction.getEndTime());
+        response.setStatus(auction.getStatus());
+        response.setCategory(auction.getCategory());
+        response.setTotalBids(auction.getTotalBids());
+        response.setCreatedAt(auction.getCreatedAt());
+        response.setUpdatedAt(auction.getUpdatedAt());
+        
+        // Map multiple images
+        response.setImageUrls(auction.getImageUrls() != null ? 
+            new ArrayList<>(auction.getImageUrls()) : new ArrayList<>());
+        
+        if (auction.getSeller() != null) {
+            response.setSellerId(auction.getSeller().getId());
+            response.setSellerName(auction.getSeller().getUsername());
+            response.setSellerUsername(auction.getSeller().getUsername());
+        }
+        
+        if (auction.getWinner() != null) {
+            response.setWinnerId(auction.getWinner().getId());
+            response.setWinnerName(auction.getWinner().getUsername());
+            response.setWinnerUsername(auction.getWinner().getUsername());
+        }
+        
+        // Add category display info
+        if (auction.getCategory() != null) {
+            response.setCategoryDisplay(auction.getCategory().getDisplayNameWithEmoji());
+        }
+        
+        return response;
     }
 }

@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -102,30 +103,44 @@ public class WatchlistService {
         return watchlistRepository.findAuctionIdsByUserId(user.getId());
     }
     
+    /**
+     * Map Watchlist entity to WatchlistResponse DTO with multiple images support
+     */
     private WatchlistResponse mapToResponse(Watchlist watchlist) {
-        Auction auction = watchlist.getAuction();
-        AuctionResponse auctionResponse = new AuctionResponse(
-                auction.getId(),
-                auction.getTitle(),
-                auction.getDescription(),
-                auction.getStartingPrice(),
-                auction.getCurrentPrice(),
-                auction.getStartTime(),
-                auction.getEndTime(),
-                auction.getStatus().name(),
-                auction.getCategory().name(),
-                auction.getCategory().getDisplayNameWithEmoji(),
-                auction.getSeller().getUsername(),
-                auction.getWinner() != null ? auction.getWinner().getUsername() : null,
-                auction.getImageUrl(),
-                auction.getTotalBids(),
-                auction.getCreatedAt()
-        );
-        
-        return new WatchlistResponse(
-                watchlist.getId(),
-                auctionResponse,
-                watchlist.getAddedAt()
-        );
+    Auction auction = watchlist.getAuction();
+    
+    AuctionResponse auctionResponse = new AuctionResponse();
+    auctionResponse.setId(auction.getId());
+    auctionResponse.setTitle(auction.getTitle());
+    auctionResponse.setDescription(auction.getDescription());
+    auctionResponse.setStartingPrice(auction.getStartingPrice());
+    auctionResponse.setCurrentPrice(auction.getCurrentPrice());
+    auctionResponse.setStartTime(auction.getStartTime());
+    auctionResponse.setEndTime(auction.getEndTime());
+    auctionResponse.setStatus(auction.getStatus());
+    auctionResponse.setCategory(auction.getCategory());
+    auctionResponse.setTotalBids(auction.getTotalBids());
+    auctionResponse.setCreatedAt(auction.getCreatedAt());
+    auctionResponse.setUpdatedAt(auction.getUpdatedAt());
+    
+    // FIXED: Only set imageUrls, not deprecated imageUrl
+    auctionResponse.setImageUrls(auction.getImageUrls() != null ? 
+        new ArrayList<>(auction.getImageUrls()) : new ArrayList<>());
+    
+    if (auction.getSeller() != null) {
+        auctionResponse.setSellerId(auction.getSeller().getId());
+        auctionResponse.setSellerName(auction.getSeller().getUsername());
     }
+    
+    if (auction.getWinner() != null) {
+        auctionResponse.setWinnerId(auction.getWinner().getId());
+        auctionResponse.setWinnerName(auction.getWinner().getUsername());
+    }
+    
+    return new WatchlistResponse(
+            watchlist.getId(),
+            auctionResponse,
+            watchlist.getAddedAt()
+    );
+}
 }

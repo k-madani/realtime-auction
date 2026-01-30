@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -164,26 +165,44 @@ public class UserService {
         return getUserProfile(user.getUsername());
     }
     
+    /**
+     * Map Auction entity to AuctionResponse DTO with multiple images support
+     */
     private AuctionResponse mapAuctionToResponse(Auction auction) {
-        return new AuctionResponse(
-                auction.getId(),
-                auction.getTitle(),
-                auction.getDescription(),
-                auction.getStartingPrice(),
-                auction.getCurrentPrice(),
-                auction.getStartTime(),
-                auction.getEndTime(),
-                auction.getStatus().name(),
-                auction.getCategory().name(),
-                auction.getCategory().getDisplayNameWithEmoji(),
-                auction.getSeller().getUsername(),
-                auction.getWinner() != null ? auction.getWinner().getUsername() : null,
-                auction.getImageUrl(),
-                auction.getTotalBids(),
-                auction.getCreatedAt()
-        );
+    AuctionResponse response = new AuctionResponse();
+    response.setId(auction.getId());
+    response.setTitle(auction.getTitle());
+    response.setDescription(auction.getDescription());
+    response.setStartingPrice(auction.getStartingPrice());
+    response.setCurrentPrice(auction.getCurrentPrice());
+    response.setStartTime(auction.getStartTime());
+    response.setEndTime(auction.getEndTime());
+    response.setStatus(auction.getStatus());
+    response.setCategory(auction.getCategory());
+    response.setTotalBids(auction.getTotalBids());
+    response.setCreatedAt(auction.getCreatedAt());
+    response.setUpdatedAt(auction.getUpdatedAt());
+    
+    // FIXED: Only set imageUrls, not deprecated imageUrl
+    response.setImageUrls(auction.getImageUrls() != null ? 
+        new ArrayList<>(auction.getImageUrls()) : new ArrayList<>());
+    
+    if (auction.getSeller() != null) {
+        response.setSellerId(auction.getSeller().getId());
+        response.setSellerName(auction.getSeller().getUsername());
     }
     
+    if (auction.getWinner() != null) {
+        response.setWinnerId(auction.getWinner().getId());
+        response.setWinnerName(auction.getWinner().getUsername());
+    }
+    
+    return response;
+}
+    
+    /**
+     * Map Bid entity to BidResponse DTO
+     */
     private BidResponse mapBidToResponse(Bid bid) {
         return new BidResponse(
                 bid.getId(),

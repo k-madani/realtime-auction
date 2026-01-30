@@ -79,4 +79,28 @@ export const reviewsAPI = {
   canReviewAuction: (auctionId) => api.get(`/reviews/auction/${auctionId}/can-review`),
 };
 
+// Add this to your existing api.js file
+
+export const paymentsAPI = {
+  // Create checkout session
+  createCheckout: (auctionId) =>
+    api.post('/payments/create-checkout-session', { auctionId }),
+  
+  // Get payment by session ID
+  getBySessionId: (sessionId) =>
+    api.get(`/payments/session/${sessionId}`),
+  
+  // Get payment by auction ID
+  getByAuctionId: (auctionId) =>
+    api.get(`/payments/auction/${auctionId}`),
+  
+  // Get my payments (as buyer)
+  getMyPayments: () =>
+    api.get('/payments/my-payments'),
+  
+  // Get payments received (as seller)
+  getPaymentsReceived: () =>
+    api.get('/payments/payments-received'),
+};
+
 export default api;

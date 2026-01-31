@@ -80,10 +80,10 @@ const ImageUpload = ({ onImagesChange, maxImages = 5 }) => {
       {/* Upload Area */}
       {images.length < maxImages && (
         <div
-          className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+          className={`rounded-lg p-8 text-center transition-all shadow-md ${
             dragActive
-              ? 'border-blue-500 bg-blue-50'
-              : 'border-gray-300 hover:border-gray-400'
+              ? 'bg-blue-50 shadow-lg'
+              : 'bg-gray-50 hover:bg-gray-100 hover:shadow-lg'
           }`}
           onDragEnter={handleDrag}
           onDragLeave={handleDrag}
@@ -105,13 +105,13 @@ const ImageUpload = ({ onImagesChange, maxImages = 5 }) => {
           >
             {uploading ? (
               <>
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-                <p className="text-gray-600">Uploading images...</p>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mb-4"></div>
+                <p className="text-gray-600 font-semibold">Uploading images...</p>
               </>
             ) : (
               <>
-                <Upload className="h-12 w-12 text-gray-400 mb-4" />
-                <p className="text-gray-700 font-medium mb-2">
+                <Upload className="h-12 w-12 text-black mb-4" />
+                <p className="text-gray-700 font-semibold mb-2">
                   Drop images here or click to upload
                 </p>
                 <p className="text-gray-500 text-sm">
@@ -127,21 +127,21 @@ const ImageUpload = ({ onImagesChange, maxImages = 5 }) => {
       {images.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {images.map((url, index) => (
-            <div key={index} className="relative group">
+            <div key={index} className="relative group shadow-md hover:shadow-xl transition-shadow rounded-lg overflow-hidden">
               <img
                 src={url}
                 alt={`Upload ${index + 1}`}
-                className="w-full h-40 object-cover rounded-lg"
+                className="w-full h-40 object-cover"
               />
               <button
                 type="button"
                 onClick={() => removeImage(index)}
-                className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 shadow-lg"
               >
                 <X className="h-4 w-4" />
               </button>
               {index === 0 && (
-                <div className="absolute bottom-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded">
+                <div className="absolute bottom-2 left-2 bg-accent-gold text-black text-xs px-2 py-1 rounded font-bold shadow-md">
                   Primary Image
                 </div>
               )}

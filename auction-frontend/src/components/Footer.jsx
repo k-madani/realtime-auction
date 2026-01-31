@@ -1,5 +1,4 @@
 import React from 'react';
-import { Gavel, Mail, MapPin, Phone, Github, Linkedin, Twitter } from 'lucide-react';
 
 const Footer = () => {
   return (

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Gavel, User, ChevronDown, LogOut, UserCircle, Menu, X } from 'lucide-react';
 
 const Header = ({ isAuthenticated, currentUser, onSignIn, onLogout }) => {
@@ -7,6 +7,7 @@ const Header = ({ isAuthenticated, currentUser, onSignIn, onLogout }) => {
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -28,6 +29,17 @@ const Header = ({ isAuthenticated, currentUser, onSignIn, onLogout }) => {
     }
   };
 
+  const isActivePage = (path) => {
+    return location.pathname === path;
+  };
+
+  const navLinkClass = (path) => {
+    const isActive = isActivePage(path);
+    return `text-gray-300 hover:text-white transition font-medium pb-1 border-b-2 ${
+      isActive ? 'border-accent-gold text-white' : 'border-transparent hover:border-accent-gold'
+    }`;
+  };
+
   return (
     <header className="bg-black text-white border-b border-gray-800 shadow-lg sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -42,57 +54,45 @@ const Header = ({ isAuthenticated, currentUser, onSignIn, onLogout }) => {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-8">
-          {isAuthenticated ? (
+          {isAuthenticated && (
             <>
               <button 
                 onClick={() => navigate('/dashboard')}
-                className="text-gray-300 hover:text-white transition font-medium"
+                className={navLinkClass('/dashboard')}
               >
                 Dashboard
               </button>
               <button 
                 onClick={() => navigate('/auctions')}
-                className="text-gray-300 hover:text-white transition font-medium"
+                className={navLinkClass('/auctions')}
               >
                 Browse
               </button>
               <button 
                 onClick={() => navigate('/my-auctions')}
-                className="text-gray-300 hover:text-white transition font-medium"
+                className={navLinkClass('/my-auctions')}
               >
                 My Auctions
               </button>
               <button 
                 onClick={() => navigate('/my-bids')}
-                className="text-gray-300 hover:text-white transition font-medium"
+                className={navLinkClass('/my-bids')}
               >
                 My Bids
               </button>
               <button 
                 onClick={() => navigate('/watchlist')}
-                className="text-gray-300 hover:text-white transition font-medium"
+                className={navLinkClass('/watchlist')}
               >
                 Watchlist
               </button>
               <button 
                 onClick={() => navigate('/create-auction')}
-                className="px-4 py-2 bg-accent-gold text-black rounded-lg hover:bg-yellow-500 transition font-semibold flex items-center gap-2"
+                className="px-4 py-2 bg-accent-gold text-black rounded-lg hover:bg-yellow-500 transition font-semibold flex items-center gap-2 shadow-md"
               >
                 <Gavel className="w-4 h-4" />
                 Create
               </button>
-            </>
-          ) : (
-            <>
-              <a href="#features" className="text-gray-300 hover:text-white transition">
-                Features
-              </a>
-              <a href="#how-it-works" className="text-gray-300 hover:text-white transition">
-                How It Works
-              </a>
-              <a href="#about" className="text-gray-300 hover:text-white transition">
-                About
-              </a>
             </>
           )}
         </nav>
@@ -104,7 +104,7 @@ const Header = ({ isAuthenticated, currentUser, onSignIn, onLogout }) => {
               {/* Profile Button */}
               <button
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                className="flex items-center gap-2 px-4 py-2 bg-primary-light rounded-lg hover:bg-primary-lighter transition"
+                className="flex items-center gap-2 px-4 py-2 bg-primary-light rounded-lg hover:bg-primary-lighter transition shadow-md"
               >
                 <User className="w-4 h-4 text-accent-gold" />
                 <span className="text-sm text-gray-300">
@@ -153,7 +153,7 @@ const Header = ({ isAuthenticated, currentUser, onSignIn, onLogout }) => {
           ) : (
             <button
               onClick={onSignIn}
-              className="flex items-center gap-2 px-6 py-2 bg-accent-gold text-black rounded-lg hover:bg-yellow-500 transition font-semibold"
+              className="flex items-center gap-2 px-6 py-2 bg-accent-gold text-black rounded-lg hover:bg-yellow-500 transition font-semibold shadow-md hover:shadow-lg"
             >
               <User className="w-4 h-4" />
               Sign In
@@ -181,7 +181,7 @@ const Header = ({ isAuthenticated, currentUser, onSignIn, onLogout }) => {
                     navigate('/dashboard');
                     setMobileMenuOpen(false);
                   }}
-                  className="block w-full text-left text-gray-300 hover:text-white transition py-2"
+                  className={`block w-full text-left py-2 ${isActivePage('/dashboard') ? 'text-accent-gold font-bold' : 'text-gray-300 hover:text-white'} transition`}
                 >
                   Dashboard
                 </button>
@@ -190,7 +190,7 @@ const Header = ({ isAuthenticated, currentUser, onSignIn, onLogout }) => {
                     navigate('/auctions');
                     setMobileMenuOpen(false);
                   }}
-                  className="block w-full text-left text-gray-300 hover:text-white transition py-2"
+                  className={`block w-full text-left py-2 ${isActivePage('/auctions') ? 'text-accent-gold font-bold' : 'text-gray-300 hover:text-white'} transition`}
                 >
                   Browse Auctions
                 </button>
@@ -199,7 +199,7 @@ const Header = ({ isAuthenticated, currentUser, onSignIn, onLogout }) => {
                     navigate('/my-auctions');
                     setMobileMenuOpen(false);
                   }}
-                  className="block w-full text-left text-gray-300 hover:text-white transition py-2"
+                  className={`block w-full text-left py-2 ${isActivePage('/my-auctions') ? 'text-accent-gold font-bold' : 'text-gray-300 hover:text-white'} transition`}
                 >
                   My Auctions
                 </button>
@@ -208,7 +208,7 @@ const Header = ({ isAuthenticated, currentUser, onSignIn, onLogout }) => {
                     navigate('/my-bids');
                     setMobileMenuOpen(false);
                   }}
-                  className="block w-full text-left text-gray-300 hover:text-white transition py-2"
+                  className={`block w-full text-left py-2 ${isActivePage('/my-bids') ? 'text-accent-gold font-bold' : 'text-gray-300 hover:text-white'} transition`}
                 >
                   My Bids
                 </button>
@@ -217,7 +217,7 @@ const Header = ({ isAuthenticated, currentUser, onSignIn, onLogout }) => {
                     navigate('/watchlist');
                     setMobileMenuOpen(false);
                   }}
-                  className="block w-full text-left text-gray-300 hover:text-white transition py-2"
+                  className={`block w-full text-left py-2 ${isActivePage('/watchlist') ? 'text-accent-gold font-bold' : 'text-gray-300 hover:text-white'} transition`}
                 >
                   Watchlist
                 </button>
@@ -235,7 +235,7 @@ const Header = ({ isAuthenticated, currentUser, onSignIn, onLogout }) => {
                     navigate('/profile');
                     setMobileMenuOpen(false);
                   }}
-                  className="block w-full text-left text-gray-300 hover:text-white transition py-2"
+                  className={`block w-full text-left py-2 ${isActivePage('/profile') ? 'text-accent-gold font-bold' : 'text-gray-300 hover:text-white'} transition`}
                 >
                   My Profile
                 </button>
@@ -261,24 +261,13 @@ const Header = ({ isAuthenticated, currentUser, onSignIn, onLogout }) => {
                 </div>
               </>
             ) : (
-              <>
-                <a href="#features" className="block text-gray-300 hover:text-white transition py-2">
-                  Features
-                </a>
-                <a href="#how-it-works" className="block text-gray-300 hover:text-white transition py-2">
-                  How It Works
-                </a>
-                <a href="#about" className="block text-gray-300 hover:text-white transition py-2">
-                  About
-                </a>
-                <button
-                  onClick={onSignIn}
-                  className="w-full flex items-center justify-center gap-2 px-6 py-2 bg-accent-gold text-black rounded-lg hover:bg-yellow-500 transition font-semibold mt-3"
-                >
-                  <User className="w-4 h-4" />
-                  Sign In
-                </button>
-              </>
+              <button
+                onClick={onSignIn}
+                className="w-full flex items-center justify-center gap-2 px-6 py-2 bg-accent-gold text-black rounded-lg hover:bg-yellow-500 transition font-semibold mt-3 shadow-md"
+              >
+                <User className="w-4 h-4" />
+                Sign In
+              </button>
             )}
           </nav>
         </div>

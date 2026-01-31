@@ -63,35 +63,55 @@ const AuctionDetailPage = () => {
   }, [auction]);
 
   const subscribeToAuction = () => {
-    // Subscribe to bid updates
-    websocketService.subscribeToAuction(id, (bidNotification) => {
-      console.log('📢 New bid received!', bidNotification);
+    // Subscribe to all auction updates (bids and extensions)
+    websocketService.subscribeToAuction(id, (message) => {
+      console.log('📢 WebSocket message received:', message);
       
-      // Update auction with new bid data
-      setAuction(prev => ({
-        ...prev,
-        currentPrice: bidNotification.currentPrice,
-        winnerUsername: bidNotification.bidderUsername,
-        totalBids: bidNotification.totalBids
-      }));
-
-      // Add new bid to bid history at top
-      const newBid = {
-        id: Date.now(),
-        auctionId: id,
-        bidderUsername: bidNotification.bidderUsername,
-        amount: bidNotification.amount,
-        bidTime: bidNotification.bidTime,
-        isWinning: true
-      };
-
-      setBids(prevBids => {
-        const updatedBids = prevBids.map(bid => ({
-          ...bid,
-          isWinning: false
+      // Handle auction extension (Anti-Snipe)
+      if (message.type === 'AUCTION_EXTENDED') {
+        console.log('⏰ ANTI-SNIPE: Auction extended!', message);
+        
+        setAuction(prev => ({
+          ...prev,
+          endTime: message.newEndTime
         }));
-        return [newBid, ...updatedBids];
-      });
+        
+        // Show notification
+        alert(`⏰ ${message.message}\n\nNew end time: ${new Date(message.newEndTime).toLocaleString()}`);
+        
+        return; // Don't process as a regular bid
+      }
+      
+      // Handle regular bid updates
+      if (message.bidderUsername && message.amount) {
+        console.log('📢 New bid received!', message);
+        
+        // Update auction with new bid data
+        setAuction(prev => ({
+          ...prev,
+          currentPrice: message.currentPrice,
+          winnerUsername: message.bidderUsername,
+          totalBids: message.totalBids
+        }));
+
+        // Add new bid to bid history at top
+        const newBid = {
+          id: Date.now(),
+          auctionId: id,
+          bidderUsername: message.bidderUsername,
+          amount: message.amount,
+          bidTime: message.bidTime,
+          isWinning: true
+        };
+
+        setBids(prevBids => {
+          const updatedBids = prevBids.map(bid => ({
+            ...bid,
+            isWinning: false
+          }));
+          return [newBid, ...updatedBids];
+        });
+      }
     });
 
     // Subscribe to status updates
@@ -129,7 +149,6 @@ const AuctionDetailPage = () => {
       const response = await paymentsAPI.getByAuctionId(id);
       setPayment(response.data);
     } catch (error) {
-      // No payment exists yet - this is fine
       console.log('No payment found for auction');
     }
   };
@@ -170,15 +189,12 @@ const AuctionDetailPage = () => {
     }
   };
 
-  // NEW: Handle payment
   const handlePayNow = async () => {
     setPaymentLoading(true);
     setPaymentError('');
 
     try {
       const response = await paymentsAPI.createCheckout(id);
-      
-      // Redirect to Stripe Checkout
       window.location.href = response.data.checkoutUrl;
     } catch (error) {
       setPaymentError(error.response?.data?.message || 'Failed to create checkout session');
@@ -188,7 +204,6 @@ const AuctionDetailPage = () => {
     }
   };
 
-  // NEW: Image navigation
   const nextImage = () => {
     if (auction?.imageUrls && auction.imageUrls.length > 0) {
       setCurrentImageIndex((prev) => 
@@ -222,7 +237,6 @@ const AuctionDetailPage = () => {
     return `${minutes}m remaining`;
   };
 
-  // Check if current user is the winner
   const isWinner = currentUser && auction && auction.winnerUsername === currentUser.username;
   const showPaymentButton = auction?.status === 'ENDED' && isWinner && !payment;
 
@@ -287,14 +301,12 @@ const AuctionDetailPage = () => {
           <div className="relative bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg h-96 flex items-center justify-center border-2 border-black overflow-hidden">
             {auction.imageUrls && auction.imageUrls.length > 0 ? (
               <>
-                {/* Main Image */}
                 <img
                   src={auction.imageUrls[currentImageIndex]}
                   alt={`${auction.title} - Image ${currentImageIndex + 1}`}
                   className="w-full h-full object-contain"
                 />
 
-                {/* Navigation Arrows (only show if multiple images) */}
                 {auction.imageUrls.length > 1 && (
                   <>
                     <button
@@ -310,41 +322,54 @@ const AuctionDetailPage = () => {
                       <ChevronRight className="w-6 h-6" />
                     </button>
 
-                    {/* Image Counter */}
                     <div className="absolute bottom-4 right-4 bg-black bg-opacity-75 text-white px-3 py-1 rounded-full text-sm font-semibold">
                       {currentImageIndex + 1} / {auction.imageUrls.length}
                     </div>
-                  </>
-                )}
 
-                {/* Thumbnail Strip (bottom) */}
-                {auction.imageUrls.length > 1 && (
-                  <div className="absolute bottom-4 left-4 flex gap-2">
-                    {auction.imageUrls.map((url, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setCurrentImageIndex(index)}
-                        className={`w-12 h-12 rounded border-2 overflow-hidden transition ${
-                          index === currentImageIndex
-                            ? 'border-accent-gold scale-110'
-                            : 'border-white opacity-60 hover:opacity-100'
-                        }`}
-                      >
-                        <img
-                          src={url}
-                          alt={`Thumbnail ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                      </button>
-                    ))}
-                  </div>
+                    <div className="absolute bottom-4 left-4 flex gap-2">
+                      {auction.imageUrls.map((url, index) => (
+                        <button
+                          key={index}
+                          onClick={() => setCurrentImageIndex(index)}
+                          className={`w-12 h-12 rounded border-2 overflow-hidden transition ${
+                            index === currentImageIndex
+                              ? 'border-accent-gold scale-110'
+                              : 'border-white opacity-60 hover:opacity-100'
+                          }`}
+                        >
+                          <img
+                            src={url}
+                            alt={`Thumbnail ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </>
                 )}
               </>
             ) : (
-              /* Placeholder if no images */
               <Gavel className="w-32 h-32 text-gray-400" />
             )}
           </div>
+
+          {/* Anti-Snipe Protection Badge */}
+          {auction.status === 'ACTIVE' && (
+            <div className="p-4 bg-blue-50 rounded-lg border-2 border-blue-300">
+              <div className="flex items-start gap-3">
+                <span className="text-3xl">⏰</span>
+                <div className="flex-1">
+                  <h3 className="font-bold text-blue-900 mb-1">
+                    Anti-Snipe Protection Active
+                  </h3>
+                  <p className="text-sm text-blue-700">
+                    This auction automatically extends by <strong>5 minutes</strong> when bids are placed in the final <strong>5 minutes</strong>. 
+                    Auction continues until no bids are received for 5 minutes.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Payment Alert (Winner Only - After Auction Ends) */}
           {showPaymentButton && (

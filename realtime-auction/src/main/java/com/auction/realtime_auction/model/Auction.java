@@ -154,4 +154,14 @@ public class Auction {
         ENDED,      // Time expired
         CANCELLED   // Cancelled by seller
     }
+
+    /**
+ * Increment the total bid count
+ */
+public void incrementBidCount() {
+    if (this.totalBids == null) {
+        this.totalBids = 0;
+    }
+    this.totalBids++;
+}
 }

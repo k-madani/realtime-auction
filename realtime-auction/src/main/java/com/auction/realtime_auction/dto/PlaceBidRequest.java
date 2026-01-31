@@ -13,7 +13,10 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class PlaceBidRequest {
     
+    @NotNull(message = "Auction ID is required")
+    private Long auctionId;
+    
     @NotNull(message = "Bid amount is required")
-    @DecimalMin(value = "0.01", message = "Bid amount must be greater than 0")
+    @DecimalMin(value = "0.01", message = "Bid must be at least 0.01")
     private BigDecimal amount;
 }

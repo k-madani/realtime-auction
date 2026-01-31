@@ -1,9 +1,12 @@
 import React from 'react';
-import { Clock, TrendingUp, User, Gavel } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Clock, TrendingUp, User, Heart, Gavel } from 'lucide-react';
 
-const AuctionCard = ({ auction, onClick }) => {
-  const getTimeRemaining = (endTime) => {
-    const end = new Date(endTime);
+const AuctionCard = ({ auction, onWatchlistToggle, isInWatchlist }) => {
+  const navigate = useNavigate();
+
+  const getTimeRemaining = () => {
+    const end = new Date(auction.endTime);
     const now = new Date();
     const diff = end - now;
     
@@ -18,88 +21,141 @@ const AuctionCard = ({ auction, onClick }) => {
     return `${minutes}m`;
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
+  const getStatusColor = () => {
+    switch (auction.status) {
       case 'ACTIVE':
-        return 'bg-accent-green text-white';
+        return 'bg-accent-green';
       case 'PENDING':
-        return 'bg-yellow-500 text-white';
+        return 'bg-yellow-500';
       case 'ENDED':
-        return 'bg-gray-500 text-white';
+        return 'bg-gray-500';
       default:
-        return 'bg-gray-400 text-white';
+        return 'bg-gray-400';
     }
   };
 
+  const getPrimaryImage = () => {
+    // Use imageUrls array if available
+    if (auction.imageUrls && auction.imageUrls.length > 0) {
+      return auction.imageUrls[0];
+    }
+    // Fallback to single imageUrl (backward compatibility)
+    if (auction.imageUrl) {
+      return auction.imageUrl;
+    }
+    return null;
+  };
+
+  const primaryImage = getPrimaryImage();
+  const imageCount = auction.imageUrls ? auction.imageUrls.length : (auction.imageUrl ? 1 : 0);
+
   return (
-    <div
-      onClick={onClick}
-      className="bg-white rounded-lg border-2 border-gray-200 cursor-pointer transition hover:shadow-xl hover:border-black group"
-    >
-      {/* Image Placeholder */}
-      <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 rounded-t-lg flex items-center justify-center overflow-hidden">
-        <Gavel className="w-16 h-16 text-gray-400 group-hover:scale-110 transition" />
-        
+    <div className="bg-white rounded-lg border-2 border-black shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group">
+      {/* Image Section */}
+      <div 
+        className="relative h-56 bg-gradient-to-br from-gray-100 to-gray-200 cursor-pointer overflow-hidden"
+        onClick={() => navigate(`/auctions/${auction.id}`)}
+      >
+        {primaryImage ? (
+          <>
+            <img
+              src={primaryImage}
+              alt={auction.title}
+              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+            />
+            {/* Image Count Badge (if multiple images) */}
+            {imageCount > 1 && (
+              <div className="absolute top-3 right-3 bg-black bg-opacity-75 text-white px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
+                <Gavel className="w-3 h-3" />
+                {imageCount}
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Gavel className="w-20 h-20 text-gray-400" />
+          </div>
+        )}
+
         {/* Status Badge */}
-        <div className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-bold ${getStatusColor(auction.status)}`}>
+        <div className={`absolute top-3 left-3 ${getStatusColor()} text-white px-3 py-1 rounded-full text-xs font-bold`}>
           {auction.status}
         </div>
 
-        {/* Time Remaining Badge */}
-        {auction.status === 'ACTIVE' && (
-          <div className="absolute bottom-3 left-3 px-3 py-1 bg-black bg-opacity-80 text-white rounded-full text-xs font-semibold flex items-center gap-1">
-            <Clock className="w-3 h-3" />
-            {getTimeRemaining(auction.endTime)}
-          </div>
+        {/* Watchlist Button */}
+        {onWatchlistToggle && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onWatchlistToggle(auction.id);
+            }}
+            className="absolute bottom-3 right-3 bg-white p-2 rounded-full shadow-lg hover:bg-gray-100 transition"
+          >
+            <Heart
+              className={`w-5 h-5 ${isInWatchlist ? 'fill-red-500 text-red-500' : 'text-gray-600'}`}
+            />
+          </button>
         )}
       </div>
 
-      {/* Content */}
+      {/* Content Section */}
       <div className="p-5">
-        <h3 className="text-xl font-bold text-black mb-2 line-clamp-1 group-hover:text-accent-gold transition">
+        {/* Title */}
+        <h3 
+          className="text-xl font-bold text-black mb-2 line-clamp-2 cursor-pointer hover:text-primary-light transition"
+          onClick={() => navigate(`/auctions/${auction.id}`)}
+        >
           {auction.title}
         </h3>
-        
-        <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-          {auction.description}
-        </p>
 
-        <div className="space-y-3">
-          {/* Current Price */}
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-500">Current Bid</span>
-            <div className="flex items-center gap-1">
-              <TrendingUp className="w-4 h-4 text-accent-gold" />
-              <span className="text-2xl font-bold text-black">
-                ${auction.currentPrice}
-              </span>
-            </div>
+        {/* Category */}
+        {auction.categoryDisplay && (
+          <div className="mb-3">
+            <span className="inline-block px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-semibold border border-gray-300">
+              {auction.categoryDisplay}
+            </span>
           </div>
+        )}
 
-          {/* Stats */}
-          <div className="flex justify-between items-center text-sm pt-3 border-t border-gray-200">
-            <div className="flex items-center gap-1 text-gray-600">
-              <User className="w-4 h-4" />
-              <span>{auction.totalBids || 0} bids</span>
-            </div>
-            
-            {auction.winnerUsername && (
-              <div className="text-gray-600">
-                Leader: <span className="font-semibold text-black">{auction.winnerUsername}</span>
-              </div>
-            )}
+        {/* Price Info */}
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Current Bid</p>
+            <p className="text-xl font-bold text-accent-gold">
+              ${auction.currentPrice?.toFixed(2) || auction.startingPrice?.toFixed(2)}
+            </p>
           </div>
-
-          {/* Starting Price */}
-          <div className="flex justify-between items-center text-xs text-gray-500">
-            <span>Starting: ${auction.startingPrice}</span>
-            {auction.status === 'ACTIVE' && (
-              <span className="text-accent-red font-semibold">
-                Ends {new Date(auction.endTime).toLocaleDateString()}
-              </span>
-            )}
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Time Left</p>
+            <p className="text-lg font-bold text-black flex items-center gap-1">
+              <Clock className="w-4 h-4" />
+              {getTimeRemaining()}
+            </p>
           </div>
         </div>
+
+        {/* Stats */}
+        <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+          <div className="flex items-center gap-1 text-gray-600 text-sm">
+            <TrendingUp className="w-4 h-4" />
+            <span className="font-semibold">{auction.totalBids || 0}</span>
+            <span>bids</span>
+          </div>
+          <div className="flex items-center gap-1 text-gray-600 text-sm">
+            <User className="w-4 h-4" />
+            <span className="font-semibold truncate max-w-[120px]">
+              {auction.sellerUsername || auction.sellerName}
+            </span>
+          </div>
+        </div>
+
+        {/* View Button */}
+        <button
+          onClick={() => navigate(`/auctions/${auction.id}`)}
+          className="w-full mt-4 px-4 py-2 bg-black text-white rounded-lg hover:bg-primary-light font-bold transition"
+        >
+          View Details
+        </button>
       </div>
     </div>
   );

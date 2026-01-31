@@ -38,6 +38,12 @@ export const auctionsAPI = {
   start: (id) => api.put(`/auctions/${id}/start`),
   end: (id) => api.put(`/auctions/${id}/end`),
   cancel: (id) => api.put(`/auctions/${id}/cancel`),
+  // Search and filter
+  search: (searchParams) => api.post('/auctions/search', searchParams),
+  getEndingSoon: () => api.get('/auctions/ending-soon'),
+  // NEW: Categories
+  getCategories: () => api.get('/auctions/categories'),
+  getByCategory: (category) => api.get(`/auctions/category/${category}`),
 };
 
 // Bids API
@@ -54,6 +60,47 @@ export const usersAPI = {
   getProfile: () => api.get('/users/profile'),
   getStats: () => api.get('/users/stats'),
   updateProfile: (data) => api.put('/users/profile', data),
+};
+
+// Watchlist API
+export const watchlistAPI = {
+  getMyWatchlist: () => api.get('/watchlist'),
+  addToWatchlist: (auctionId) => api.post(`/watchlist/auction/${auctionId}`),
+  removeFromWatchlist: (auctionId) => api.delete(`/watchlist/auction/${auctionId}`),
+  checkWatchlist: (auctionId) => api.get(`/watchlist/check/${auctionId}`),
+  getWatchlistAuctionIds: () => api.get('/watchlist/auction-ids'),
+};
+
+// Reviews API
+export const reviewsAPI = {
+  createReview: (auctionId, reviewData) => api.post(`/reviews/auction/${auctionId}`, reviewData),
+  getUserRatings: (username) => api.get(`/reviews/user/${username}`),
+  getAuctionReviews: (auctionId) => api.get(`/reviews/auction/${auctionId}`),
+  canReviewAuction: (auctionId) => api.get(`/reviews/auction/${auctionId}/can-review`),
+};
+
+// Add this to your existing api.js file
+
+export const paymentsAPI = {
+  // Create checkout session
+  createCheckout: (auctionId) =>
+    api.post('/payments/create-checkout-session', { auctionId }),
+  
+  // Get payment by session ID
+  getBySessionId: (sessionId) =>
+    api.get(`/payments/session/${sessionId}`),
+  
+  // Get payment by auction ID
+  getByAuctionId: (auctionId) =>
+    api.get(`/payments/auction/${auctionId}`),
+  
+  // Get my payments (as buyer)
+  getMyPayments: () =>
+    api.get('/payments/my-payments'),
+  
+  // Get payments received (as seller)
+  getPaymentsReceived: () =>
+    api.get('/payments/payments-received'),
 };
 
 export default api;

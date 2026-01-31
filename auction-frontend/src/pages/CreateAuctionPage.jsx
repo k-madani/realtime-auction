@@ -1,23 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Gavel, DollarSign, Calendar, Clock, FileText, Image as ImageIcon, AlertCircle, CheckCircle } from 'lucide-react';
+import { Gavel, DollarSign, Calendar, Clock, FileText, AlertCircle, CheckCircle } from 'lucide-react';
 import { auctionsAPI } from '../services/api';
+import ImageUpload from '../components/ImageUpload';
 
 const CreateAuctionPage = () => {
   const navigate = useNavigate();
+  const [categories, setCategories] = useState([]);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     startingPrice: '',
     startTime: '',
     endTime: '',
-    imageUrl: ''
+    imageUrls: [], // Changed from imageUrl to imageUrls
+    category: 'ELECTRONICS'
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await auctionsAPI.getCategories();
+      setCategories(response.data);
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
+    }
+  };
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    setError('');
+  };
+
+  // NEW: Handle image URLs from ImageUpload component
+  const handleImagesChange = (imageUrls) => {
+    setFormData({ ...formData, imageUrls });
     setError('');
   };
 
@@ -28,6 +50,11 @@ const CreateAuctionPage = () => {
     // Validation
     if (!formData.title || !formData.startingPrice || !formData.startTime || !formData.endTime) {
       setError('Please fill in all required fields');
+      return;
+    }
+
+    if (formData.imageUrls.length === 0) {
+      setError('Please upload at least one image for your auction');
       return;
     }
 
@@ -109,6 +136,30 @@ const CreateAuctionPage = () => {
             />
             <p className="text-xs text-gray-500 mt-1">
               {formData.title.length}/100 characters
+            </p>
+          </div>
+
+          {/* Category */}
+          <div>
+            <label className="block text-sm font-semibold text-black mb-2">
+              <Gavel className="w-4 h-4 inline mr-2" />
+              Category *
+            </label>
+            <select
+              name="category"
+              value={formData.category}
+              onChange={handleChange}
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
+              required
+            >
+              {categories.map((cat) => (
+                <option key={cat.value} value={cat.value}>
+                  {cat.displayNameWithEmoji}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              Select the category that best describes your item
             </p>
           </div>
 
@@ -202,22 +253,14 @@ const CreateAuctionPage = () => {
             </div>
           </div>
 
-          {/* Image URL */}
+          {/* NEW: Image Upload Component */}
           <div>
             <label className="block text-sm font-semibold text-black mb-2">
-              <ImageIcon className="w-4 h-4 inline mr-2" />
-              Image URL (Optional)
+              📸 Auction Images *
             </label>
-            <input
-              type="url"
-              name="imageUrl"
-              value={formData.imageUrl}
-              onChange={handleChange}
-              placeholder="https://example.com/image.jpg"
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Add an image to make your auction more attractive
+            <ImageUpload onImagesChange={handleImagesChange} maxImages={5} />
+            <p className="text-xs text-gray-500 mt-2">
+              Upload up to 5 high-quality images. The first image will be the primary thumbnail.
             </p>
           </div>
 
@@ -236,6 +279,10 @@ const CreateAuctionPage = () => {
                 <p className="text-sm">
                   <span className="font-semibold text-gray-600">Starting Price:</span>{' '}
                   <span className="text-accent-gold font-bold">${formData.startingPrice}</span>
+                </p>
+                <p className="text-sm">
+                  <span className="font-semibold text-gray-600">Images:</span>{' '}
+                  <span className="text-black">{formData.imageUrls.length} uploaded</span>
                 </p>
                 {formData.startTime && (
                   <p className="text-sm">
@@ -292,7 +339,8 @@ const CreateAuctionPage = () => {
           <li>• Provide detailed description with condition, dimensions, and history</li>
           <li>• Set a realistic starting price to attract bidders</li>
           <li>• Choose appropriate auction duration (24-72 hours works best)</li>
-          <li>• Add high-quality images to increase trust and bids</li>
+          <li>• Upload multiple high-quality images from different angles</li>
+          <li>• First image will be used as the main thumbnail</li>
         </ul>
       </div>
     </div>

@@ -1,188 +1,269 @@
-import React, { useState } from 'react';
-import { Gavel, DollarSign, TrendingUp, Clock, User, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Gavel, AlertCircle, TrendingUp, Lock, CheckCircle } from 'lucide-react';
 import { bidsAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import TotalCostCalculator from './TotalCostCalculator';
+import PriceInsights from './PriceInsights';
 
 const BidPanel = ({ auction, onBidSuccess }) => {
+  const { currentUser, isAuthenticated } = useAuth();
   const [bidAmount, setBidAmount] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
-  if (!auction) {
-    return (
-      <div className="bg-white rounded-lg border-2 border-gray-200 p-8 text-center sticky top-6">
-        <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Gavel className="w-10 h-10 text-gray-400" />
-        </div>
-        <h3 className="text-xl font-bold text-black mb-2">Select an Auction</h3>
-        <p className="text-gray-600">
-          Choose an auction from the list to place your bid
-        </p>
-      </div>
-    );
-  }
+  useEffect(() => {
+    // Reset messages when auction changes
+    setError('');
+    setSuccess('');
+  }, [auction?.id]);
 
-  const minBid = parseFloat(auction.currentPrice) + 10;
-  const isActive = auction.status === 'ACTIVE';
+  const getMinimumBid = () => {
+    if (!auction) return 0;
+    const currentPrice = parseFloat(auction.currentPrice);
+    const increment = currentPrice < 100 ? 5 : currentPrice < 500 ? 10 : 25;
+    return (currentPrice + increment).toFixed(2);
+  };
+
+  const handleBidChange = (e) => {
+    const value = e.target.value;
+    // Only allow positive numbers with up to 2 decimal places
+    if (value === '' || /^\d*\.?\d{0,2}$/.test(value)) {
+      setBidAmount(value);
+      setError('');
+      setSuccess('');
+    }
+  };
+
+  const validateBid = () => {
+    const bid = parseFloat(bidAmount);
+    const minBid = parseFloat(getMinimumBid());
+
+    if (!bidAmount || isNaN(bid)) {
+      setError('Please enter a valid bid amount');
+      return false;
+    }
+
+    if (bid < minBid) {
+      setError(`Minimum bid is $${minBid}`);
+      return false;
+    }
+
+    return true;
+  };
 
   const handlePlaceBid = async () => {
-    setError('');
-    const amount = parseFloat(bidAmount);
-
-    // Validation
-    if (!bidAmount || isNaN(amount)) {
-      setError('Please enter a valid bid amount');
-      return;
-    }
-
-    if (amount < minBid) {
-      setError(`Bid must be at least $${minBid.toFixed(2)}`);
-      return;
-    }
+    if (!validateBid()) return;
 
     setLoading(true);
+    setError('');
+    setSuccess('');
+
     try {
-      await bidsAPI.placeBid(auction.id, amount);
+      await bidsAPI.placeBid({
+        auctionId: auction.id,
+        amount: parseFloat(bidAmount)
+      });
+
+      setSuccess('Bid placed successfully! 🎉');
       setBidAmount('');
-      setError('');
+      
       if (onBidSuccess) {
         onBidSuccess();
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to place bid');
+      const errorMsg = err.response?.data?.message || 'Failed to place bid';
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
   };
 
-  const getTimeRemaining = () => {
-    const end = new Date(auction.endTime);
-    const now = new Date();
-    const diff = end - now;
-    
-    if (diff <= 0) return 'Auction ended';
-    
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    
-    if (days > 0) return `${days}d ${hours}h ${minutes}m`;
-    if (hours > 0) return `${hours}h ${minutes}m`;
-    return `${minutes}m remaining`;
+  const handleQuickBid = () => {
+    const minBid = getMinimumBid();
+    setBidAmount(minBid);
   };
 
-  return (
-    <div className="bg-white rounded-lg border-2 border-black shadow-xl p-6 sticky top-6">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-12 h-12 bg-black rounded-lg flex items-center justify-center">
-          <TrendingUp className="w-6 h-6 text-accent-gold" />
-        </div>
-        <h3 className="text-2xl font-bold text-black">Place Your Bid</h3>
+  if (!auction) {
+    return (
+      <div className="bg-white rounded-lg border-2 border-gray-200 p-6">
+        <p className="text-gray-600">Loading auction details...</p>
       </div>
+    );
+  }
 
-      {/* Auction Info */}
-      <div className="space-y-4 mb-6 pb-6 border-b-2 border-gray-200">
-        <div className="flex justify-between items-center">
-          <span className="text-sm text-gray-600">Current Price</span>
-          <span className="text-3xl font-bold text-black">${auction.currentPrice}</span>
+  const isActive = auction.status === 'ACTIVE';
+  const isPending = auction.status === 'PENDING';
+  const isEnded = auction.status === 'ENDED';
+  const isSeller = currentUser?.username === auction.sellerUsername;
+  const isWinner = currentUser?.username === auction.winnerUsername;
+
+  return (
+    <div className="sticky top-6 space-y-6">
+      {/* Main Bid Panel */}
+      <div className="bg-white rounded-lg border-2 border-black p-6 shadow-xl">
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-black mb-2 flex items-center gap-2">
+            <Gavel className="w-6 h-6 text-accent-gold" />
+            Place Your Bid
+          </h2>
+          <p className="text-sm text-gray-600">
+            Current bid: <span className="font-bold text-accent-gold">${auction.currentPrice}</span>
+          </p>
         </div>
 
-        <div className="flex justify-between items-center">
-          <span className="text-sm text-gray-600">Minimum Bid</span>
-          <span className="text-xl font-bold text-accent-gold">${minBid.toFixed(2)}</span>
-        </div>
+        {/* Success Message */}
+        {success && (
+          <div className="mb-4 p-3 bg-green-50 border-l-4 border-green-500 rounded flex items-start gap-2">
+            <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+            <span className="text-sm text-green-700 font-semibold">{success}</span>
+          </div>
+        )}
 
-        {auction.highestBidder && (
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Highest Bidder</span>
-            <div className="flex items-center gap-2">
-              <User className="w-4 h-4 text-gray-400" />
-              <span className="font-semibold text-black">{auction.highestBidder}</span>
+        {/* Error Message */}
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 rounded flex items-start gap-2">
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <span className="text-sm text-red-700">{error}</span>
+          </div>
+        )}
+
+        {/* Auction Status Messages */}
+        {!isAuthenticated && (
+          <div className="mb-4 p-3 bg-blue-50 border-l-4 border-blue-500 rounded">
+            <p className="text-sm text-blue-700">
+              <Lock className="w-4 h-4 inline mr-1" />
+              Please login to place a bid
+            </p>
+          </div>
+        )}
+
+        {isSeller && (
+          <div className="mb-4 p-3 bg-yellow-50 border-l-4 border-yellow-500 rounded">
+            <p className="text-sm text-yellow-700 font-semibold">
+              You cannot bid on your own auction
+            </p>
+          </div>
+        )}
+
+        {isPending && (
+          <div className="mb-4 p-3 bg-yellow-50 border-l-4 border-yellow-500 rounded">
+            <p className="text-sm text-yellow-700 font-semibold">
+              Auction has not started yet
+            </p>
+          </div>
+        )}
+
+        {isEnded && (
+          <div className="mb-4 p-3 bg-gray-50 border-l-4 border-gray-500 rounded">
+            <p className="text-sm text-gray-700 font-semibold">
+              {isWinner ? '🎉 You won this auction!' : 'This auction has ended'}
+            </p>
+          </div>
+        )}
+
+        {/* Bid Input Section */}
+        {isActive && !isSeller && isAuthenticated && (
+          <>
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-black mb-2">
+                Your Bid Amount
+              </label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-lg">
+                  $
+                </span>
+                <input
+                  type="text"
+                  value={bidAmount}
+                  onChange={handleBidChange}
+                  placeholder={getMinimumBid()}
+                  className="w-full pl-8 pr-4 py-3 text-lg font-bold border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-gold focus:border-accent-gold"
+                  disabled={loading}
+                />
+              </div>
+              <div className="flex items-center justify-between mt-2">
+                <p className="text-xs text-gray-500">
+                  Minimum: ${getMinimumBid()}
+                </p>
+                <button
+                  onClick={handleQuickBid}
+                  className="text-xs text-blue-600 hover:text-blue-700 font-semibold"
+                >
+                  Use minimum →
+                </button>
+              </div>
+            </div>
+
+            {/* Total Cost Calculator */}
+            {bidAmount && parseFloat(bidAmount) > 0 && (
+              <TotalCostCalculator 
+                auctionId={auction.id} 
+                bidAmount={parseFloat(bidAmount)} 
+              />
+            )}
+
+            {/* Place Bid Button */}
+            <button
+              onClick={handlePlaceBid}
+              disabled={loading || !bidAmount}
+              className="w-full mt-4 px-6 py-4 bg-accent-gold text-black rounded-lg hover:bg-yellow-500 font-bold text-lg transition disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-black"></div>
+                  Placing Bid...
+                </>
+              ) : (
+                <>
+                  <Gavel className="w-5 h-5" />
+                  Place Bid
+                </>
+              )}
+            </button>
+
+            {/* Bidding Tips */}
+            <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+              <p className="text-xs text-gray-600 font-semibold mb-2">💡 Bidding Tips:</p>
+              <ul className="text-xs text-gray-600 space-y-1">
+                <li>• Bids are binding and cannot be cancelled</li>
+                <li>• You'll be notified if you're outbid</li>
+                <li>• Check total cost including fees</li>
+              </ul>
+            </div>
+          </>
+        )}
+
+        {/* Current Winner Display */}
+        {auction.winnerUsername && (
+          <div className="mt-4 p-3 bg-gradient-to-r from-accent-gold to-yellow-500 rounded-lg">
+            <div className="flex items-center gap-2 text-black">
+              <TrendingUp className="w-4 h-4" />
+              <span className="text-sm font-semibold">
+                Current Winner: {auction.winnerUsername}
+                {isWinner && ' (You!)'}
+              </span>
             </div>
           </div>
         )}
 
-        <div className="flex justify-between items-center">
-          <span className="text-sm text-gray-600">Total Bids</span>
-          <span className="font-semibold text-black">{auction.totalBids || 0}</span>
-        </div>
-      </div>
-
-      {/* Bid Input */}
-      {isActive ? (
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-semibold text-black mb-2">
-              Your Bid Amount
-            </label>
-            <div className="relative">
-              <DollarSign className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="number"
-                placeholder={`Min: ${minBid.toFixed(2)}`}
-                value={bidAmount}
-                onChange={(e) => setBidAmount(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-lg"
-                step="10"
-                min={minBid}
-              />
+        {/* Auction Stats */}
+        <div className="mt-6 pt-6 border-t-2 border-gray-200">
+          <div className="grid grid-cols-2 gap-4 text-center">
+            <div>
+              <p className="text-sm text-gray-500 mb-1">Total Bids</p>
+              <p className="text-2xl font-bold text-black">{auction.totalBids || 0}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500 mb-1">Starting Price</p>
+              <p className="text-2xl font-bold text-black">${auction.startingPrice}</p>
             </div>
           </div>
-
-          {error && (
-            <div className="flex items-start gap-2 p-3 bg-red-50 border-l-4 border-accent-red rounded">
-              <AlertCircle className="w-5 h-5 text-accent-red mt-0.5" />
-              <span className="text-sm text-red-700">{error}</span>
-            </div>
-          )}
-
-          <button
-            onClick={handlePlaceBid}
-            disabled={loading || !isActive}
-            className="w-full py-3 bg-black text-white rounded-lg hover:bg-primary-light font-bold disabled:bg-gray-400 disabled:cursor-not-allowed transition shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              'Placing Bid...'
-            ) : (
-              <>
-                <Gavel className="w-5 h-5" />
-                Place Bid
-              </>
-            )}
-          </button>
-        </div>
-      ) : (
-        <div className="p-4 bg-gray-100 rounded-lg text-center">
-          <p className="text-gray-600 font-semibold">
-            {auction.status === 'PENDING' ? 'Auction not started yet' : 'Auction has ended'}
-          </p>
-        </div>
-      )}
-
-      {/* Time Remaining */}
-      <div className="mt-6 p-4 bg-gradient-to-r from-black to-primary-light rounded-lg">
-        <div className="flex items-center gap-2 text-white">
-          <Clock className="w-5 h-5 text-accent-gold" />
-          <div>
-            <p className="text-xs text-gray-300">Time Remaining</p>
-            <p className="font-bold text-lg">{getTimeRemaining()}</p>
-          </div>
         </div>
       </div>
 
-      {/* Auction Details */}
-      <div className="mt-4 pt-4 border-t border-gray-200">
-        <p className="text-xs text-gray-500 mb-1">Ends on</p>
-        <p className="text-sm font-semibold text-black">
-          {new Date(auction.endTime).toLocaleString('en-US', {
-            weekday: 'short',
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
-        </p>
-      </div>
+      {/* Price Insights Panel */}
+      <PriceInsights auctionId={auction.id} />
     </div>
   );
 };

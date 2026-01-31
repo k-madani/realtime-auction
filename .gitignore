@@ -37,3 +37,4 @@ application-prod.properties
 # Test outputs
 *.dump
 *.hprof
+*.http

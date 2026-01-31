@@ -69,6 +69,12 @@ const Header = ({ isAuthenticated, currentUser, onSignIn, onLogout }) => {
                 My Bids
               </button>
               <button 
+                onClick={() => navigate('/watchlist')}
+                className="text-gray-300 hover:text-white transition font-medium"
+              >
+                Watchlist
+              </button>
+              <button 
                 onClick={() => navigate('/create-auction')}
                 className="px-4 py-2 bg-accent-gold text-black rounded-lg hover:bg-yellow-500 transition font-semibold flex items-center gap-2"
               >
@@ -205,6 +211,15 @@ const Header = ({ isAuthenticated, currentUser, onSignIn, onLogout }) => {
                   className="block w-full text-left text-gray-300 hover:text-white transition py-2"
                 >
                   My Bids
+                </button>
+                <button 
+                  onClick={() => {
+                    navigate('/watchlist');
+                    setMobileMenuOpen(false);
+                  }}
+                  className="block w-full text-left text-gray-300 hover:text-white transition py-2"
+                >
+                  Watchlist
                 </button>
                 <button 
                   onClick={() => {

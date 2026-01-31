@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User, Mail, Calendar, Award, Edit2, Save, X, AlertCircle } from 'lucide-react';
 import { usersAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import UserRatingsDisplay from '../components/UserRatingsDisplay';
 
 const ProfilePage = () => {
   const [profile, setProfile] = useState(null);
@@ -136,7 +137,7 @@ const ProfilePage = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Profile Card */}
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 space-y-6">
           <div className="bg-white rounded-lg border-2 border-black p-6 text-center">
             <div className="w-24 h-24 bg-gradient-to-br from-black to-primary-light rounded-full flex items-center justify-center mx-auto mb-4">
               <User className="w-12 h-12 text-accent-gold" />
@@ -184,6 +185,9 @@ const ProfilePage = () => {
               </div>
             </div>
           </div>
+
+          {/* User Ratings */}
+          <UserRatingsDisplay username={profile.username} />
         </div>
 
         {/* Edit Profile Form */}

@@ -31,3 +31,16 @@ build/
 
 ### VS Code ###
 .vscode/
+ Secrets
+application-local.properties
+*.env
+.env
+.env.local
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+
+# Build
+target/

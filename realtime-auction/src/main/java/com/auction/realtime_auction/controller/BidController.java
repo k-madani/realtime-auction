@@ -15,41 +15,49 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/bids")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "http://localhost:3000")
 public class BidController {
     
     private final BidService bidService;
     
-    @PostMapping("/auction/{auctionId}")
+    /**
+     * Place a bid
+     */
+    @PostMapping
     public ResponseEntity<BidResponse> placeBid(
-            @PathVariable Long auctionId,
             @Valid @RequestBody PlaceBidRequest request,
             Authentication authentication) {
-        BidResponse response = bidService.placeBid(
-                auctionId,
-                request,
-                authentication.getName()
-        );
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        
+        String username = authentication.getName();
+        BidResponse bid = bidService.placeBid(request, username);
+        return ResponseEntity.status(HttpStatus.CREATED).body(bid);
     }
     
+    /**
+     * Get all bids for an auction
+     */
     @GetMapping("/auction/{auctionId}")
     public ResponseEntity<List<BidResponse>> getAuctionBids(@PathVariable Long auctionId) {
         List<BidResponse> bids = bidService.getAuctionBids(auctionId);
         return ResponseEntity.ok(bids);
     }
     
+    /**
+     * Get highest bid for an auction
+     */
     @GetMapping("/auction/{auctionId}/highest")
     public ResponseEntity<BidResponse> getHighestBid(@PathVariable Long auctionId) {
         BidResponse bid = bidService.getHighestBid(auctionId);
-        if (bid != null) {
-            return ResponseEntity.ok(bid);
-        }
-        return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(bid);
     }
     
+    /**
+     * Get my bids (current user's bids)
+     */
     @GetMapping("/my-bids")
     public ResponseEntity<List<BidResponse>> getMyBids(Authentication authentication) {
-        List<BidResponse> bids = bidService.getMyBids(authentication.getName());
+        String username = authentication.getName();
+        List<BidResponse> bids = bidService.getMyBids(username);
         return ResponseEntity.ok(bids);
     }
 }

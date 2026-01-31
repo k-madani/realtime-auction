@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TrendingUp, Clock, ExternalLink } from 'lucide-react';
+import { TrendingUp, ExternalLink } from 'lucide-react';
 import { bidsAPI } from '../services/api';
 
 const MyBidsPage = () => {

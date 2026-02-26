@@ -13,8 +13,12 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.Map;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import com.auction.realtime_auction.model.User;
 
 @RestController
 @RequestMapping("/api/auctions")
@@ -73,11 +77,27 @@ public class AuctionController {
         AuctionResponse auction = auctionService.updateAuction(id, request, username);
         return ResponseEntity.ok(auction);
     }
+
+    /**
+     * Delete auction
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Map<String, String>> deleteAuction(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user) {
+        
+        auctionService.deleteAuction(id, user.getUsername());
+        
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Auction deleted successfully");
+        
+        return ResponseEntity.ok(response);
+    }
     
     /**
      * Cancel auction
      */
-    @DeleteMapping("/{id}")
+    @PostMapping("/{id}/cancel")
     public ResponseEntity<Void> cancelAuction(
             @PathVariable Long id,
             Authentication authentication) {

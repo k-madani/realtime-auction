@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { X, Upload } from 'lucide-react';
 
-const ImageUpload = ({ onImagesChange, maxImages = 5 }) => {
-  const [images, setImages] = useState([]);
+const ImageUpload = ({ onImagesChange, maxImages = 5, existingImages = [] }) => {
+  const [images, setImages] = useState(existingImages);
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
 
@@ -11,12 +11,23 @@ const ImageUpload = ({ onImagesChange, maxImages = 5 }) => {
     const uploadedUrls = [];
 
     try {
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        alert('You must be logged in to upload images');
+        setUploading(false);
+        return;
+      }
+
       for (const file of files) {
         const formData = new FormData();
-        formData.append('file', file);
+        formData.append('image', file);
 
         const response = await fetch('http://localhost:8080/api/images/upload', {
           method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
           body: formData,
         });
 
@@ -24,7 +35,9 @@ const ImageUpload = ({ onImagesChange, maxImages = 5 }) => {
           const data = await response.json();
           uploadedUrls.push(data.url);
         } else {
-          console.error('Failed to upload image');
+          const errorData = await response.json();
+          console.error('Failed to upload image:', errorData);
+          alert(`Failed to upload image: ${errorData.error || 'Unknown error'}`);
         }
       }
 
@@ -69,10 +82,36 @@ const ImageUpload = ({ onImagesChange, maxImages = 5 }) => {
     }
   };
 
-  const removeImage = (index) => {
-    const newImages = images.filter((_, i) => i !== index);
-    setImages(newImages);
-    onImagesChange(newImages);
+  const removeImage = async (index) => {
+    const imageToDelete = images[index];
+    
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Delete from Cloudinary
+      const response = await fetch(
+        `http://localhost:8080/api/images/delete?url=${encodeURIComponent(imageToDelete)}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          }
+        }
+      );
+
+      if (response.ok) {
+        // Remove from local state
+        const newImages = images.filter((_, i) => i !== index);
+        setImages(newImages);
+        onImagesChange(newImages);
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to delete image: ${errorData.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('Failed to delete image');
+    }
   };
 
   return (

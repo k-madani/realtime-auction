@@ -37,7 +37,7 @@ export const auctionsAPI = {
   create: (data) => api.post('/auctions', data),
   start: (id) => api.put(`/auctions/${id}/start`),
   end: (id) => api.put(`/auctions/${id}/end`),
-  cancel: (id) => api.put(`/auctions/${id}/cancel`),
+  cancel: (id) => api.post(`/auctions/${id}/cancel`),
   // Search and filter
   search: (searchParams) => api.post('/auctions/search', searchParams),
   getEndingSoon: () => api.get('/auctions/ending-soon'),

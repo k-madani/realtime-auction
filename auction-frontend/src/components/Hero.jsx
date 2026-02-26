@@ -40,22 +40,6 @@ const Hero = ({ onGetStarted }) => {
               View Features
             </button>
           </div>
-
-          {/* Stats */}
-          {/* <div className="grid grid-cols-3 gap-8 max-w-3xl mx-auto pt-8 border-t border-gray-700">
-            <div>
-              <div className="text-4xl font-bold text-accent-gold mb-2">10K+</div>
-              <div className="text-gray-400">Active Bidders</div>
-            </div>
-            <div>
-              <div className="text-4xl font-bold text-accent-gold mb-2">$2M+</div>
-              <div className="text-gray-400">Total Bids</div>
-            </div>
-            <div>
-              <div className="text-4xl font-bold text-accent-gold mb-2">500+</div>
-              <div className="text-gray-400">Daily Auctions</div>
-            </div>
-          </div> */}
         </div>
       </div>
     </section>

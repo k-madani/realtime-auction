@@ -19,7 +19,8 @@ AuctionHub is a full-stack real-time auction platform where users can list items
 
 ## Project Structure
 
-```realtime-auction/
+```
+realtime-auction/
 ├── backend/
 │   └── src/main/java/com/auction/realtime_auction/
 │       ├── config/          # Security, WebSocket, Cloudinary, Stripe
@@ -49,13 +50,15 @@ API: http://localhost:8080
 
 1. Clone the repository
 
-```git clone https://github.com/k-madani/realtime-auction.git
+```
+git clone https://github.com/k-madani/realtime-auction.git
 cd realtime-auction/realtime-auction
 ```
 
 2. Configure application.properties
 
-```spring.datasource.url=jdbc:postgresql://localhost:5432/auction_db
+```
+spring.datasource.url=jdbc:postgresql://localhost:5432/auction_db
 spring.datasource.username=your_db_user
 spring.datasource.password=your_db_password
 
@@ -79,18 +82,21 @@ auction.anti-snipe.extension-minutes=5
 
 3. Run the server
 
-```./mvnw spring-boot:run
+```
+./mvnw spring-boot:run
 ```
 
 ### Frontend
 
 1. Install dependencies
 
-``` cd frontend
+```
+cd frontend
 npm install
 ```
 
 2. Run Frontend
 
-```npm run dev
+```
+npm run dev
 ```

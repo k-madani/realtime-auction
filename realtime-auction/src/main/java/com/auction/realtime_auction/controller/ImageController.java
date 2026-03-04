@@ -14,7 +14,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/images")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "http://localhost:5173")
 public class ImageController {
     
     private final CloudinaryService cloudinaryService;
@@ -24,7 +24,7 @@ public class ImageController {
      */
     @PostMapping("/upload")
     public ResponseEntity<Map<String, String>> uploadImage(
-            @RequestParam("file") MultipartFile file) {
+            @RequestParam("image") MultipartFile file) { 
         try {
             String imageUrl = cloudinaryService.uploadImage(file);
             
@@ -45,9 +45,8 @@ public class ImageController {
      */
     @PostMapping("/upload-multiple")
     public ResponseEntity<Map<String, Object>> uploadMultipleImages(
-            @RequestParam("files") List<MultipartFile> files) {
+            @RequestParam("images") List<MultipartFile> files) {
         try {
-            // FIXED: Use correct method name
             List<String> imageUrls = cloudinaryService.uploadMultipleImages(files);
             
             Map<String, Object> response = new HashMap<>();
@@ -64,7 +63,7 @@ public class ImageController {
     }
     
     /**
-     * Delete image
+     * Delete single image by URL
      */
     @DeleteMapping("/delete")
     public ResponseEntity<Map<String, String>> deleteImage(
@@ -79,6 +78,27 @@ public class ImageController {
         } catch (IOException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to delete image: " + e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+    
+    /**
+     * Delete multiple images by URLs
+     */
+    @DeleteMapping("/delete-multiple")
+    public ResponseEntity<Map<String, Object>> deleteMultipleImages(
+            @RequestBody List<String> imageUrls) {
+        try {
+            int deletedCount = cloudinaryService.deleteMultipleImages(imageUrls);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Images deleted successfully");
+            response.put("deletedCount", deletedCount);
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", "Failed to delete images: " + e.getMessage());
             return ResponseEntity.badRequest().body(error);
         }
     }

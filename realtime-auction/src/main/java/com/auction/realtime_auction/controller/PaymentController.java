@@ -21,100 +21,76 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/payments")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "http://localhost:5173")
 public class PaymentController {
-    
+
     private final PaymentService paymentService;
-    
+
     @Value("${stripe.webhook.secret}")
     private String webhookSecret;
-    
+
     /**
      * Create Stripe Checkout Session
+     * StripeException propagates → GlobalExceptionHandler → 500
      */
     @PostMapping("/create-checkout-session")
     public ResponseEntity<CheckoutSessionResponse> createCheckoutSession(
             @Valid @RequestBody CreateCheckoutSessionRequest request,
-            Authentication authentication) {
-        try {
-            String username = authentication.getName();
-            CheckoutSessionResponse response = paymentService.createCheckoutSession(
-                    request.getAuctionId(),
-                    username
-            );
-            return ResponseEntity.ok(response);
-        } catch (StripeException e) {
-            throw new RuntimeException("Failed to create checkout session: " + e.getMessage());
-        }
+            Authentication authentication) throws StripeException {
+
+        CheckoutSessionResponse response = paymentService.createCheckoutSession(
+                request.getAuctionId(),
+                authentication.getName()
+        );
+        return ResponseEntity.ok(response);
     }
-    
+
     /**
-     * Stripe Webhook Endpoint
-     * This receives payment confirmation from Stripe
+     * Stripe Webhook — signature verified, then delegates to service
+     * SignatureVerificationException → 400 via BadRequestException
      */
     @PostMapping("/webhook")
     public ResponseEntity<String> handleWebhook(
             @RequestBody String payload,
             @RequestHeader("Stripe-Signature") String sigHeader) {
-        
+
         Event event;
-        
         try {
             event = Webhook.constructEvent(payload, sigHeader, webhookSecret);
         } catch (SignatureVerificationException e) {
-            return ResponseEntity.badRequest().body("Invalid signature");
+            throw new com.auction.realtime_auction.exception.BadRequestException(
+                    "Invalid Stripe webhook signature");
         }
-        
-        // Handle the event
+
         if ("checkout.session.completed".equals(event.getType())) {
             Session session = (Session) event.getDataObjectDeserializer()
                     .getObject()
-                    .orElseThrow(() -> new RuntimeException("Failed to deserialize event"));
-            
-            paymentService.handlePaymentSuccess(
-                    session.getId(),
-                    session.getPaymentIntent()
-            );
+                    .orElseThrow(() -> new com.auction.realtime_auction.exception.BadRequestException(
+                            "Failed to deserialize Stripe event payload"));
+
+            paymentService.handlePaymentSuccess(session.getId(), session.getPaymentIntent());
         }
-        
+
         return ResponseEntity.ok("Webhook received");
     }
-    
-    /**
-     * Get payment by session ID (for success page)
-     */
+
     @GetMapping("/session/{sessionId}")
     public ResponseEntity<PaymentResponse> getPaymentBySessionId(@PathVariable String sessionId) {
-        PaymentResponse payment = paymentService.getPaymentBySessionId(sessionId);
-        return ResponseEntity.ok(payment);
+        return ResponseEntity.ok(paymentService.getPaymentBySessionId(sessionId));
     }
-    
-    /**
-     * Get payment by auction ID
-     */
+
     @GetMapping("/auction/{auctionId}")
     public ResponseEntity<PaymentResponse> getPaymentByAuctionId(@PathVariable Long auctionId) {
-        PaymentResponse payment = paymentService.getPaymentByAuctionId(auctionId);
-        return ResponseEntity.ok(payment);
+        return ResponseEntity.ok(paymentService.getPaymentByAuctionId(auctionId));
     }
-    
-    /**
-     * Get my payments (as buyer)
-     */
+
     @GetMapping("/my-payments")
     public ResponseEntity<List<PaymentResponse>> getMyPayments(Authentication authentication) {
-        String username = authentication.getName();
-        List<PaymentResponse> payments = paymentService.getMyPayments(username);
-        return ResponseEntity.ok(payments);
+        return ResponseEntity.ok(paymentService.getMyPayments(authentication.getName()));
     }
-    
-    /**
-     * Get payments received (as seller)
-     */
+
     @GetMapping("/payments-received")
     public ResponseEntity<List<PaymentResponse>> getPaymentsReceived(Authentication authentication) {
-        String username = authentication.getName();
-        List<PaymentResponse> payments = paymentService.getPaymentsReceived(username);
-        return ResponseEntity.ok(payments);
+        return ResponseEntity.ok(paymentService.getPaymentsReceived(authentication.getName()));
     }
 }

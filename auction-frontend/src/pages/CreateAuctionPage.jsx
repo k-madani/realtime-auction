@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Gavel, DollarSign, Calendar, Clock, FileText, AlertCircle, CheckCircle } from 'lucide-react';
+import { 
+  Gavel, DollarSign, Calendar, Clock, FileText, AlertCircle, CheckCircle, Lightbulb, 
+  Camera, Smartphone, Shirt, Home, Package, Palette, Activity, BookOpen, Gamepad2, 
+  Gem, Car, Music, Wrench
+} from 'lucide-react';
 import { auctionsAPI } from '../services/api';
 import ImageUpload from '../components/ImageUpload';
 
@@ -13,11 +17,27 @@ const CreateAuctionPage = () => {
     startingPrice: '',
     startTime: '',
     endTime: '',
-    imageUrls: [], // Changed from imageUrl to imageUrls
+    imageUrls: [],
     category: 'ELECTRONICS'
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Map categories to Lucide icons (black)
+  const categoryIcons = {
+    'ELECTRONICS': Smartphone,
+    'FASHION': Shirt,
+    'HOME_GARDEN': Home,
+    'COLLECTIBLES': Package,
+    'ART': Palette,
+    'SPORTS': Activity,
+    'BOOKS': BookOpen,
+    'TOYS': Gamepad2,
+    'JEWELRY': Gem,
+    'AUTOMOTIVE': Car,
+    'MUSIC': Music,
+    'OTHER': Wrench
+  };
 
   useEffect(() => {
     fetchCategories();
@@ -37,7 +57,6 @@ const CreateAuctionPage = () => {
     setError('');
   };
 
-  // NEW: Handle image URLs from ImageUpload component
   const handleImagesChange = (imageUrls) => {
     setFormData({ ...formData, imageUrls });
     setError('');
@@ -47,7 +66,6 @@ const CreateAuctionPage = () => {
     e.preventDefault();
     setError('');
 
-    // Validation
     if (!formData.title || !formData.startingPrice || !formData.startTime || !formData.endTime) {
       setError('Please fill in all required fields');
       return;
@@ -81,7 +99,6 @@ const CreateAuctionPage = () => {
 
       const response = await auctionsAPI.create(auctionData);
       
-      // Show success and redirect
       alert('Auction created successfully!');
       navigate(`/auctions/${response.data.id}`);
     } catch (err) {
@@ -91,11 +108,15 @@ const CreateAuctionPage = () => {
     }
   };
 
-  // Get min date/time for inputs (current time)
   const getMinDateTime = () => {
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     return now.toISOString().slice(0, 16);
+  };
+
+  const getCategoryIcon = (categoryValue) => {
+    const IconComponent = categoryIcons[categoryValue] || Wrench;
+    return <IconComponent className="w-5 h-5 text-black" />;
   };
 
   return (
@@ -109,10 +130,44 @@ const CreateAuctionPage = () => {
         <p className="text-gray-600 mt-2">List your item and start receiving bids</p>
       </div>
 
-      <div className="bg-white rounded-lg border-2 border-black p-8">
+      {/* Tips Section */}
+      <div className="mb-6 bg-gradient-to-r from-black to-gray-800 rounded-lg p-6 text-white shadow-xl">
+        <div className="flex items-center gap-2 mb-3">
+          <Lightbulb className="w-6 h-6 text-accent-gold" />
+          <h3 className="text-xl font-bold">Tips for a Successful Auction</h3>
+        </div>
+        <ul className="space-y-2 text-sm text-gray-200">
+          <li className="flex items-start gap-2">
+            <span className="text-accent-gold font-bold">•</span>
+            Write a clear, descriptive title that highlights key features
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-accent-gold font-bold">•</span>
+            Provide detailed description with condition, dimensions, and history
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-accent-gold font-bold">•</span>
+            Set a realistic starting price to attract bidders
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-accent-gold font-bold">•</span>
+            Choose appropriate auction duration (24-72 hours works best)
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-accent-gold font-bold">•</span>
+            Upload multiple high-quality images from different angles
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-accent-gold font-bold">•</span>
+            First image will be used as the main thumbnail
+          </li>
+        </ul>
+      </div>
+
+      <div className="bg-white rounded-lg p-8 shadow-lg">
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border-l-4 border-accent-red rounded flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-accent-red mt-0.5" />
+          <div className="mb-6 p-4 bg-red-50 rounded-lg flex items-start gap-3 shadow-sm">
+            <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
             <span className="text-sm text-red-700">{error}</span>
           </div>
         )}
@@ -121,7 +176,7 @@ const CreateAuctionPage = () => {
           {/* Title */}
           <div>
             <label className="block text-sm font-semibold text-black mb-2">
-              <Gavel className="w-4 h-4 inline mr-2" />
+              <Gavel className="w-4 h-4 inline mr-2 text-black" />
               Auction Title *
             </label>
             <input
@@ -131,7 +186,7 @@ const CreateAuctionPage = () => {
               onChange={handleChange}
               placeholder="e.g., Vintage Rolex Watch"
               maxLength={100}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
+              className="w-full px-4 py-3 bg-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-black shadow-sm"
               required
             />
             <p className="text-xs text-gray-500 mt-1">
@@ -141,20 +196,20 @@ const CreateAuctionPage = () => {
 
           {/* Category */}
           <div>
-            <label className="block text-sm font-semibold text-black mb-2">
-              <Gavel className="w-4 h-4 inline mr-2" />
+            <label className="block text-sm font-semibold text-black mb-2 flex items-center gap-2">
+              {getCategoryIcon(formData.category)}
               Category *
             </label>
             <select
               name="category"
               value={formData.category}
               onChange={handleChange}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
+              className="w-full px-4 py-3 bg-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-black shadow-sm"
               required
             >
               {categories.map((cat) => (
                 <option key={cat.value} value={cat.value}>
-                  {cat.displayNameWithEmoji}
+                  {cat.displayName}
                 </option>
               ))}
             </select>
@@ -166,7 +221,7 @@ const CreateAuctionPage = () => {
           {/* Description */}
           <div>
             <label className="block text-sm font-semibold text-black mb-2">
-              <FileText className="w-4 h-4 inline mr-2" />
+              <FileText className="w-4 h-4 inline mr-2 text-black" />
               Description
             </label>
             <textarea
@@ -176,7 +231,7 @@ const CreateAuctionPage = () => {
               placeholder="Provide detailed information about your item..."
               rows={6}
               maxLength={1000}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black resize-none"
+              className="w-full px-4 py-3 bg-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-black resize-none shadow-sm"
             />
             <p className="text-xs text-gray-500 mt-1">
               {formData.description.length}/1000 characters
@@ -186,7 +241,7 @@ const CreateAuctionPage = () => {
           {/* Starting Price */}
           <div>
             <label className="block text-sm font-semibold text-black mb-2">
-              <DollarSign className="w-4 h-4 inline mr-2" />
+              <DollarSign className="w-4 h-4 inline mr-2 text-black" />
               Starting Price *
             </label>
             <div className="relative">
@@ -201,7 +256,7 @@ const CreateAuctionPage = () => {
                 placeholder="0.00"
                 step="0.01"
                 min="0.01"
-                className="w-full pl-8 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
+                className="w-full pl-8 pr-4 py-3 bg-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-black shadow-sm"
                 required
               />
             </div>
@@ -215,7 +270,7 @@ const CreateAuctionPage = () => {
             {/* Start Time */}
             <div>
               <label className="block text-sm font-semibold text-black mb-2">
-                <Calendar className="w-4 h-4 inline mr-2" />
+                <Calendar className="w-4 h-4 inline mr-2 text-black" />
                 Start Time *
               </label>
               <input
@@ -224,7 +279,7 @@ const CreateAuctionPage = () => {
                 value={formData.startTime}
                 onChange={handleChange}
                 min={getMinDateTime()}
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
+                className="w-full px-4 py-3 bg-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-black shadow-sm"
                 required
               />
               <p className="text-xs text-gray-500 mt-1">
@@ -235,7 +290,7 @@ const CreateAuctionPage = () => {
             {/* End Time */}
             <div>
               <label className="block text-sm font-semibold text-black mb-2">
-                <Clock className="w-4 h-4 inline mr-2" />
+                <Clock className="w-4 h-4 inline mr-2 text-black" />
                 End Time *
               </label>
               <input
@@ -244,7 +299,7 @@ const CreateAuctionPage = () => {
                 value={formData.endTime}
                 onChange={handleChange}
                 min={formData.startTime || getMinDateTime()}
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
+                className="w-full px-4 py-3 bg-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-black shadow-sm"
                 required
               />
               <p className="text-xs text-gray-500 mt-1">
@@ -253,10 +308,11 @@ const CreateAuctionPage = () => {
             </div>
           </div>
 
-          {/* NEW: Image Upload Component */}
+          {/* Image Upload */}
           <div>
             <label className="block text-sm font-semibold text-black mb-2">
-              📸 Auction Images *
+              <Camera className="w-4 h-4 inline mr-2 text-black" />
+              Auction Images *
             </label>
             <ImageUpload onImagesChange={handleImagesChange} maxImages={5} />
             <p className="text-xs text-gray-500 mt-2">
@@ -266,9 +322,9 @@ const CreateAuctionPage = () => {
 
           {/* Preview Box */}
           {formData.title && formData.startingPrice && (
-            <div className="p-6 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg border-2 border-gray-200">
+            <div className="p-6 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg shadow-md">
               <div className="flex items-center gap-2 mb-3">
-                <CheckCircle className="w-5 h-5 text-accent-green" />
+                <CheckCircle className="w-5 h-5 text-green-600" />
                 <h3 className="text-lg font-bold text-black">Preview</h3>
               </div>
               <div className="space-y-2">
@@ -305,18 +361,18 @@ const CreateAuctionPage = () => {
           )}
 
           {/* Action Buttons */}
-          <div className="flex gap-4 pt-6 border-t-2 border-gray-200">
+          <div className="flex gap-4 pt-6">
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="flex-1 px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 font-bold transition"
+              className="flex-1 px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 font-bold transition shadow-md"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-6 py-3 bg-black text-white rounded-lg hover:bg-primary-light font-bold disabled:bg-gray-400 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
+              className="flex-1 px-6 py-3 bg-black text-white rounded-lg hover:bg-accent-gold hover:text-black font-bold disabled:bg-gray-400 disabled:cursor-not-allowed transition flex items-center justify-center gap-2 shadow-md"
             >
               {loading ? (
                 'Creating...'
@@ -329,19 +385,6 @@ const CreateAuctionPage = () => {
             </button>
           </div>
         </form>
-      </div>
-
-      {/* Tips Section */}
-      <div className="mt-8 bg-gradient-to-r from-black to-primary-light rounded-lg p-6 text-white">
-        <h3 className="text-xl font-bold mb-3">💡 Tips for a Successful Auction</h3>
-        <ul className="space-y-2 text-sm text-gray-200">
-          <li>• Write a clear, descriptive title that highlights key features</li>
-          <li>• Provide detailed description with condition, dimensions, and history</li>
-          <li>• Set a realistic starting price to attract bidders</li>
-          <li>• Choose appropriate auction duration (24-72 hours works best)</li>
-          <li>• Upload multiple high-quality images from different angles</li>
-          <li>• First image will be used as the main thumbnail</li>
-        </ul>
       </div>
     </div>
   );

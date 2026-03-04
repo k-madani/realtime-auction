@@ -1,0 +1,2307 @@
+openapi: 3.0.3
+info:
+  title: AuctionHub API
+  description: REST API for the AuctionHub real-time auction platform
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080/api
+    description: Local development
+
+security:
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    RegisterRequest:
+      type: object
+      required: [username, email, password]
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+          example: alice_dev
+        email:
+          type: string
+          format: email
+          example: alice@example.com
+        password:
+          type: string
+          minLength: 6
+          example: Secure@123
+
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          example: alice_dev
+        password:
+          type: string
+          example: Secure@123
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbGljZV9kZXYifQ.abc123
+        username:
+          type: string
+          example: alice_dev
+        email:
+          type: string
+          example: alice@example.com
+        role:
+          type: string
+          example: USER
+
+    CreateAuctionRequest:
+      type: object
+      required: [title, startingPrice, startTime, endTime, category]
+      properties:
+        title:
+          type: string
+          minLength: 3
+          maxLength: 200
+          example: Vintage Rolex Submariner 1965
+        description:
+          type: string
+          maxLength: 5000
+          example: Excellent condition. Original bracelet, box and papers included.
+        startingPrice:
+          type: number
+          format: double
+          minimum: 0.01
+          example: 4500.00
+        startTime:
+          type: string
+          format: date-time
+          example: "2026-03-01T10:00:00"
+        endTime:
+          type: string
+          format: date-time
+          example: "2026-03-03T10:00:00"
+        category:
+          type: string
+          enum: [ELECTRONICS, FASHION, HOME_GARDEN, COLLECTIBLES, ART, SPORTS, BOOKS_MEDIA, TOYS_GAMES, JEWELRY, AUTOMOTIVE, MUSIC, OTHER]
+          example: JEWELRY
+        imageUrls:
+          type: array
+          items:
+            type: string
+          example:
+            - https://res.cloudinary.com/demo/image/upload/v1/auction-platform/auctions/rolex-front.jpg
+
+    AuctionResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 42
+        title:
+          type: string
+          example: Vintage Rolex Submariner 1965
+        description:
+          type: string
+          example: Excellent condition. Original bracelet, box and papers included.
+        startingPrice:
+          type: number
+          example: 4500.00
+        currentPrice:
+          type: number
+          example: 5250.00
+        startTime:
+          type: string
+          format: date-time
+          example: "2026-03-01T10:00:00"
+        endTime:
+          type: string
+          format: date-time
+          example: "2026-03-03T10:00:00"
+        status:
+          type: string
+          enum: [PENDING, ACTIVE, ENDED, CANCELLED]
+          example: ACTIVE
+        category:
+          type: string
+          enum: [ELECTRONICS, FASHION, HOME_GARDEN, COLLECTIBLES, ART, SPORTS, BOOKS_MEDIA, TOYS_GAMES, JEWELRY, AUTOMOTIVE, MUSIC, OTHER]
+          example: JEWELRY
+        categoryDisplay:
+          type: string
+          example: "💎 Jewelry & Watches"
+        imageUrls:
+          type: array
+          items:
+            type: string
+          example:
+            - https://res.cloudinary.com/demo/image/upload/v1/auction-platform/auctions/rolex-front.jpg
+        sellerId:
+          type: integer
+          format: int64
+          example: 7
+        sellerUsername:
+          type: string
+          example: bob_collector
+        winnerId:
+          type: integer
+          format: int64
+          example: 13
+        winnerUsername:
+          type: string
+          example: alice_dev
+        totalBids:
+          type: integer
+          example: 8
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-02-28T09:15:00"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2026-03-02T14:30:00"
+
+    PriceInsightsResponse:
+      type: object
+      properties:
+        currentPrice:
+          type: number
+          example: 5250.00
+        averagePrice:
+          type: number
+          example: 6100.00
+        minPrice:
+          type: number
+          example: 3200.00
+        maxPrice:
+          type: number
+          example: 9800.00
+        totalSoldItems:
+          type: integer
+          example: 14
+        priceComparison:
+          type: string
+          enum: [below_average, average, above_average, insufficient_data]
+          example: below_average
+        percentageDifference:
+          type: integer
+          example: -14
+        recommendation:
+          type: string
+          example: "Great deal! This price is significantly below average for this category."
+
+    CostBreakdownResponse:
+      type: object
+      properties:
+        bidAmount:
+          type: number
+          example: 5250.00
+        platformFee:
+          type: number
+          example: 262.50
+        shippingEstimate:
+          type: number
+          example: 15.00
+        totalCost:
+          type: number
+          example: 5527.50
+        platformFeePercentage:
+          type: number
+          example: 5.0
+
+    CategoryResponse:
+      type: object
+      properties:
+        value:
+          type: string
+          example: JEWELRY
+        displayName:
+          type: string
+          example: Jewelry & Watches
+        displayNameWithEmoji:
+          type: string
+          example: "💎 Jewelry & Watches"
+
+    PlaceBidRequest:
+      type: object
+      required: [auctionId, amount]
+      properties:
+        auctionId:
+          type: integer
+          format: int64
+          example: 42
+        amount:
+          type: number
+          format: double
+          minimum: 0.01
+          example: 5250.00
+
+    BidResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 101
+        auctionId:
+          type: integer
+          format: int64
+          example: 42
+        bidderUsername:
+          type: string
+          example: alice_dev
+        amount:
+          type: number
+          example: 5250.00
+        bidTime:
+          type: string
+          format: date-time
+          example: "2026-03-02T14:28:45"
+        isWinning:
+          type: boolean
+          example: true
+
+    UserProfileResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 13
+        username:
+          type: string
+          example: alice_dev
+        email:
+          type: string
+          example: alice@example.com
+        role:
+          type: string
+          example: USER
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-01-15T08:00:00"
+        totalAuctionsCreated:
+          type: integer
+          example: 5
+        activeAuctionsCount:
+          type: integer
+          example: 2
+        totalBidsPlaced:
+          type: integer
+          example: 34
+        auctionsWon:
+          type: integer
+          example: 6
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+          example: alice_updated
+        email:
+          type: string
+          format: email
+          example: alice_new@example.com
+        currentPassword:
+          type: string
+          minLength: 6
+          example: Secure@123
+        newPassword:
+          type: string
+          minLength: 6
+          example: NewSecure@456
+
+    UserStatsResponse:
+      type: object
+      properties:
+        totalAuctionsCreated:
+          type: integer
+          example: 5
+        activeAuctions:
+          type: integer
+          example: 2
+        endedAuctions:
+          type: integer
+          example: 3
+        totalRevenue:
+          type: number
+          example: 12750.00
+        totalBidsPlaced:
+          type: integer
+          example: 34
+        auctionsWon:
+          type: integer
+          example: 6
+        currentlyWinning:
+          type: integer
+          example: 2
+        totalSpent:
+          type: number
+          example: 8320.00
+
+    CreateCheckoutSessionRequest:
+      type: object
+      required: [auctionId]
+      properties:
+        auctionId:
+          type: integer
+          format: int64
+          example: 42
+
+    CheckoutSessionResponse:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          example: cs_test_a1b2c3d4e5f6g7h8i9j0
+        checkoutUrl:
+          type: string
+          example: https://checkout.stripe.com/pay/cs_test_a1b2c3d4e5f6g7h8i9j0
+        paymentId:
+          type: integer
+          format: int64
+          example: 25
+
+    PaymentResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 25
+        auctionId:
+          type: integer
+          format: int64
+          example: 42
+        auctionTitle:
+          type: string
+          example: Vintage Rolex Submariner 1965
+        buyerId:
+          type: integer
+          format: int64
+          example: 13
+        buyerName:
+          type: string
+          example: alice_dev
+        sellerId:
+          type: integer
+          format: int64
+          example: 7
+        sellerName:
+          type: string
+          example: bob_collector
+        amount:
+          type: number
+          example: 5250.00
+        status:
+          type: string
+          enum: [PENDING, COMPLETED, FAILED, REFUNDED, CANCELLED]
+          example: COMPLETED
+        paidAt:
+          type: string
+          format: date-time
+          example: "2026-03-03T11:05:22"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-03-03T11:00:00"
+
+    CreateReviewRequest:
+      type: object
+      required: [rating]
+      properties:
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 5
+        comment:
+          type: string
+          maxLength: 500
+          example: Excellent seller! Item was exactly as described, shipped fast.
+
+    ReviewResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 9
+        auctionId:
+          type: integer
+          format: int64
+          example: 42
+        auctionTitle:
+          type: string
+          example: Vintage Rolex Submariner 1965
+        reviewerUsername:
+          type: string
+          example: alice_dev
+        revieweeUsername:
+          type: string
+          example: bob_collector
+        revieweeRole:
+          type: string
+          enum: [SELLER, BUYER]
+          example: SELLER
+        rating:
+          type: integer
+          example: 5
+        comment:
+          type: string
+          example: Excellent seller! Item was exactly as described, shipped fast.
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-03-04T09:20:00"
+
+    UserRatingResponse:
+      type: object
+      properties:
+        userId:
+          type: integer
+          format: int64
+          example: 7
+        username:
+          type: string
+          example: bob_collector
+        overallRating:
+          type: number
+          example: 4.8
+        totalReviews:
+          type: integer
+          example: 21
+        sellerRating:
+          type: number
+          example: 4.9
+        sellerReviews:
+          type: integer
+          example: 18
+        buyerRating:
+          type: number
+          example: 4.5
+        buyerReviews:
+          type: integer
+          example: 3
+        recentReviews:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReviewResponse'
+
+    WatchlistResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 33
+        auction:
+          $ref: '#/components/schemas/AuctionResponse'
+        addedAt:
+          type: string
+          format: date-time
+          example: "2026-03-01T12:00:00"
+
+    ErrorResponse:
+      type: object
+      required: [code, message, error, timestamp]
+      properties:
+        code:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: "Auction not found with id: 42"
+        error:
+          type: string
+          example: Bad Request
+        timestamp:
+          type: string
+          format: date-time
+          example: "2026-03-02T14:30:00"
+
+# ── Reusable responses ────────────────────────────────────────────
+  responses:
+    Unauthorized:
+      description: Missing or invalid JWT token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: 401
+            message: Missing or invalid authentication token
+            error: Unauthorized
+            timestamp: "2026-03-02T14:30:00"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: 500
+            message: An unexpected error occurred
+            error: Internal Server Error
+            timestamp: "2026-03-02T14:30:00"
+
+paths:
+
+  # ── Auth ── (public — no JWT required)
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            example:
+              username: alice_dev
+              email: alice@example.com
+              password: Secure@123
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              example:
+                token: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbGljZV9kZXYifQ.abc123
+                username: alice_dev
+                email: alice@example.com
+                role: USER
+        '400':
+          description: Username or email already taken
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 400
+                message: "Username 'alice_dev' is already taken"
+                error: Bad Request
+                timestamp: "2026-03-01T10:00:00"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login with username and password
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              username: alice_dev
+              password: Secure@123
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              example:
+                token: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbGljZV9kZXYifQ.abc123
+                username: alice_dev
+                email: alice@example.com
+                role: USER
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 401
+                message: Invalid username or password
+                error: Unauthorized
+                timestamp: "2026-03-01T10:00:00"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ── Auctions ── (all require JWT)
+  /auctions:
+    get:
+      tags: [Auctions]
+      summary: Get all auctions with optional filters
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [PENDING, ACTIVE, ENDED, CANCELLED]
+            example: ACTIVE
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ELECTRONICS, FASHION, HOME_GARDEN, COLLECTIBLES, ART, SPORTS, BOOKS_MEDIA, TOYS_GAMES, JEWELRY, AUTOMOTIVE, MUSIC, OTHER]
+            example: JEWELRY
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+            example: rolex
+      responses:
+        '200':
+          description: List of auctions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuctionResponse'
+              example:
+                - id: 42
+                  title: Vintage Rolex Submariner 1965
+                  currentPrice: 5250.00
+                  status: ACTIVE
+                  category: JEWELRY
+                  categoryDisplay: "💎 Jewelry & Watches"
+                  totalBids: 8
+                  sellerUsername: bob_collector
+                  winnerUsername: alice_dev
+        '400':
+          description: Invalid status or category value
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 400
+                message: "Invalid status value: UNKNOWN"
+                error: Bad Request
+                timestamp: "2026-03-01T10:00:00"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags: [Auctions]
+      summary: Create a new auction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAuctionRequest'
+            example:
+              title: Vintage Rolex Submariner 1965
+              description: Excellent condition. Original bracelet, box and papers.
+              startingPrice: 4500.00
+              startTime: "2026-03-01T10:00:00"
+              endTime: "2026-03-03T10:00:00"
+              category: JEWELRY
+              imageUrls:
+                - https://res.cloudinary.com/demo/image/upload/v1/rolex.jpg
+      responses:
+        '201':
+          description: Auction created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuctionResponse'
+              example:
+                id: 42
+                title: Vintage Rolex Submariner 1965
+                startingPrice: 4500.00
+                currentPrice: 4500.00
+                status: PENDING
+                category: JEWELRY
+                categoryDisplay: "💎 Jewelry & Watches"
+                totalBids: 0
+        '400':
+          description: Validation error or invalid times
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 400
+                message: Start time must be in the future
+                error: Bad Request
+                timestamp: "2026-03-01T10:00:00"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Seller user not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: "User not found: alice_dev"
+                error: Not Found
+                timestamp: "2026-03-01T10:00:00"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /auctions/active:
+    get:
+      tags: [Auctions]
+      summary: Get all active auctions
+      responses:
+        '200':
+          description: List of active auctions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuctionResponse'
+              example:
+                - id: 42
+                  title: Vintage Rolex Submariner 1965
+                  currentPrice: 5250.00
+                  status: ACTIVE
+                  totalBids: 8
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /auctions/search:
+    get:
+      tags: [Auctions]
+      summary: Search auctions by keyword
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema:
+            type: string
+            example: rolex
+      responses:
+        '200':
+          description: Matching auctions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuctionResponse'
+              example:
+                - id: 42
+                  title: Vintage Rolex Submariner 1965
+                  currentPrice: 5250.00
+                  status: ACTIVE
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /auctions/categories:
+    get:
+      tags: [Auctions]
+      summary: Get all auction categories
+      responses:
+        '200':
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CategoryResponse'
+              example:
+                - value: ELECTRONICS
+                  displayName: Electronics
+                  displayNameWithEmoji: "📱 Electronics"
+                - value: JEWELRY
+                  displayName: Jewelry & Watches
+                  displayNameWithEmoji: "💎 Jewelry & Watches"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /auctions/my-auctions:
+    get:
+      tags: [Auctions]
+      summary: Get auctions created by the authenticated user
+      responses:
+        '200':
+          description: User's auctions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuctionResponse'
+              example:
+                - id: 42
+                  title: Vintage Rolex Submariner 1965
+                  currentPrice: 5250.00
+                  status: ACTIVE
+                  totalBids: 8
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: "User not found: alice_dev"
+                error: Not Found
+                timestamp: "2026-03-01T10:00:00"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /auctions/{id}:
+    get:
+      tags: [Auctions]
+      summary: Get auction by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            example: 42
+      responses:
+        '200':
+          description: Auction detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuctionResponse'
+              example:
+                id: 42
+                title: Vintage Rolex Submariner 1965
+                startingPrice: 4500.00
+                currentPrice: 5250.00
+                status: ACTIVE
+                category: JEWELRY
+                categoryDisplay: "💎 Jewelry & Watches"
+                totalBids: 8
+                sellerUsername: bob_collector
+                winnerUsername: alice_dev
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Auction not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: "Auction not found with id: 42"
+                error: Not Found
+                timestamp: "2026-03-02T14:30:00"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      tags: [Auctions]
+      summary: Update auction (PENDING only, seller only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            example: 42
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAuctionRequest'
+            example:
+              title: Vintage Rolex Submariner 1965 Updated
+              startingPrice: 4800.00
+              startTime: "2026-03-01T10:00:00"
+              endTime: "2026-03-04T10:00:00"
+              category: JEWELRY
+      responses:
+        '200':
+          description: Auction updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuctionResponse'
+              example:
+                id: 42
+                title: Vintage Rolex Submariner 1965 Updated
+                currentPrice: 4800.00
+                status: PENDING
+        '400':
+          description: Auction already started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 400
+                message: Only auctions that have not started yet can be updated
+                error: Bad Request
+                timestamp: "2026-03-01T11:00:00"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Not the seller
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 403
+                message: You are not authorized to update this auction
+                error: Forbidden
+                timestamp: "2026-03-01T11:00:00"
+        '404':
+          description: Auction not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: "Auction not found with id: 42"
+                error: Not Found
+                timestamp: "2026-03-01T11:00:00"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags: [Auctions]
+      summary: Delete auction (PENDING, no bids, seller only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            example: 42
+      responses:
+        '200':
+          description: Auction deleted
+          content:
+            application/json:
+              example:
+                message: Auction deleted successfully
+        '400':
+          description: Auction already started or has bids
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 400
+                message: Only auctions that have not started yet can be deleted
+                error: Bad Request
+                timestamp: "2026-03-01T11:00:00"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Not the seller
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 403
+                message: You are not authorized to delete this auction
+                error: Forbidden
+                timestamp: "2026-03-01T11:00:00"
+        '404':
+          description: Auction not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: "Auction not found with id: 42"
+                error: Not Found
+                timestamp: "2026-03-01T11:00:00"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /auctions/{id}/cancel:
+    post:
+      tags: [Auctions]
+      summary: Cancel auction (no bids, seller only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            example: 42
+      responses:
+        '200':
+          description: Auction cancelled
+          content:
+            application/json:
+              example:
+                message: Auction cancelled successfully
+        '400':
+          description: Auction already ended or has bids
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 400
+                message: Cannot cancel an auction that already has bids
+                error: Bad Request
+                timestamp: "2026-03-02T10:00:00"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Not the seller
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 403
+                message: You are not authorized to cancel this auction
+                error: Forbidden
+                timestamp: "2026-03-02T10:00:00"
+        '404':
+          description: Auction not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: "Auction not found with id: 42"
+                error: Not Found
+                timestamp: "2026-03-02T10:00:00"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /auctions/{id}/cost-breakdown:
+    get:
+      tags: [Auctions]
+      summary: Get cost breakdown for a given bid amount
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            example: 42
+        - name: bidAmount
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+            example: 5250.00
+      responses:
+        '200':
+          description: Cost breakdown
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CostBreakdownResponse'
+              example:
+                bidAmount: 5250.00
+                platformFee: 262.50
+                shippingEstimate: 15.00
+                totalCost: 5527.50
+                platformFeePercentage: 5.0
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /auctions/{id}/price-insights:
+    get:
+      tags: [Auctions]
+      summary: Get price insights based on category history
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            example: 42
+      responses:
+        '200':
+          description: Price insights
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PriceInsightsResponse'
+              example:
+                currentPrice: 5250.00
+                averagePrice: 6100.00
+                minPrice: 3200.00
+                maxPrice: 9800.00
+                totalSoldItems: 14
+                priceComparison: below_average
+                percentageDifference: -14
+                recommendation: "Great deal! This price is significantly below average for this category."
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Auction not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: "Auction not found with id: 42"
+                error: Not Found
+                timestamp: "2026-03-02T14:30:00"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ── Bids ──
+  /bids:
+    post:
+      tags: [Bids]
+      summary: Place a bid on an auction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceBidRequest'
+            example:
+              auctionId: 42
+              amount: 5250.00
+      responses:
+        '201':
+          description: Bid placed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BidResponse'
+              example:
+                id: 101
+                auctionId: 42
+                bidderUsername: alice_dev
+                amount: 5250.00
+                bidTime: "2026-03-02T14:28:45"
+                isWinning: true
+        '400':
+          description: Auction not active or bid too low
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 400
+                message: "Bid amount must be at least $5275.00"
+                error: Bad Request
+                timestamp: "2026-03-02T14:28:45"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Bidding on own auction
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 403
+                message: You cannot place a bid on your own auction
+                error: Forbidden
+                timestamp: "2026-03-02T14:28:45"
+        '404':
+          description: Auction or user not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: "Auction not found with id: 42"
+                error: Not Found
+                timestamp: "2026-03-02T14:28:45"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /bids/auction/{auctionId}:
+    get:
+      tags: [Bids]
+      summary: Get all bids for an auction (newest first)
+      parameters:
+        - name: auctionId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            example: 42
+      responses:
+        '200':
+          description: Bid history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BidResponse'
+              example:
+                - id: 101
+                  auctionId: 42
+                  bidderUsername: alice_dev
+                  amount: 5250.00
+                  bidTime: "2026-03-02T14:28:45"
+                  isWinning: true
+                - id: 98
+                  auctionId: 42
+                  bidderUsername: emma_watch
+                  amount: 5000.00
+                  bidTime: "2026-03-02T13:10:00"
+                  isWinning: false
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Auction not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: "Auction not found with id: 42"
+                error: Not Found
+                timestamp: "2026-03-02T14:30:00"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /bids/auction/{auctionId}/highest:
+    get:
+      tags: [Bids]
+      summary: Get highest bid for an auction
+      parameters:
+        - name: auctionId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            example: 42
+      responses:
+        '200':
+          description: Highest bid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BidResponse'
+              example:
+                id: 101
+                auctionId: 42
+                bidderUsername: alice_dev
+                amount: 5250.00
+                bidTime: "2026-03-02T14:28:45"
+                isWinning: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Auction not found or no bids yet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: "No bids found for auction: 42"
+                error: Not Found
+                timestamp: "2026-03-02T14:30:00"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /bids/my-bids:
+    get:
+      tags: [Bids]
+      summary: Get authenticated user's bid history
+      responses:
+        '200':
+          description: User's bids
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BidResponse'
+              example:
+                - id: 101
+                  auctionId: 42
+                  bidderUsername: alice_dev
+                  amount: 5250.00
+                  bidTime: "2026-03-02T14:28:45"
+                  isWinning: true
+                - id: 87
+                  auctionId: 38
+                  bidderUsername: alice_dev
+                  amount: 320.00
+                  bidTime: "2026-02-25T09:15:00"
+                  isWinning: false
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: "User not found: alice_dev"
+                error: Not Found
+                timestamp: "2026-03-02T14:30:00"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ── Users ──
+  /users/profile:
+    get:
+      tags: [Users]
+      summary: Get authenticated user's profile
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+              example:
+                id: 13
+                username: alice_dev
+                email: alice@example.com
+                role: USER
+                createdAt: "2026-01-15T08:00:00"
+                totalAuctionsCreated: 5
+                activeAuctionsCount: 2
+                totalBidsPlaced: 34
+                auctionsWon: 6
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: "User not found: alice_dev"
+                error: Not Found
+                timestamp: "2026-03-02T10:00:00"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      tags: [Users]
+      summary: Update authenticated user's profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+            example:
+              username: alice_updated
+              email: alice_new@example.com
+              currentPassword: Secure@123
+              newPassword: NewSecure@456
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+              example:
+                id: 13
+                username: alice_updated
+                email: alice_new@example.com
+                role: USER
+        '400':
+          description: Username or email already taken
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 400
+                message: "Username 'alice_updated' is already taken"
+                error: Bad Request
+                timestamp: "2026-03-02T10:00:00"
+        '401':
+          description: Missing/invalid JWT or wrong current password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 401
+                message: Current password is incorrect
+                error: Unauthorized
+                timestamp: "2026-03-02T10:00:00"
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: "User not found: alice_dev"
+                error: Not Found
+                timestamp: "2026-03-02T10:00:00"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /users/stats:
+    get:
+      tags: [Users]
+      summary: Get authenticated user's activity statistics
+      responses:
+        '200':
+          description: User statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserStatsResponse'
+              example:
+                totalAuctionsCreated: 5
+                activeAuctions: 2
+                endedAuctions: 3
+                totalRevenue: 12750.00
+                totalBidsPlaced: 34
+                auctionsWon: 6
+                currentlyWinning: 2
+                totalSpent: 8320.00
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: "User not found: alice_dev"
+                error: Not Found
+                timestamp: "2026-03-02T10:00:00"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ── Payments ──
+  /payments/create-checkout-session:
+    post:
+      tags: [Payments]
+      summary: Create Stripe checkout session (winner only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCheckoutSessionRequest'
+            example:
+              auctionId: 42
+      responses:
+        '200':
+          description: Checkout session created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckoutSessionResponse'
+              example:
+                sessionId: cs_test_a1b2c3d4e5f6g7h8i9j0
+                checkoutUrl: https://checkout.stripe.com/pay/cs_test_a1b2c3d4e5f6g7h8i9j0
+                paymentId: 25
+        '400':
+          description: Auction not ended or payment already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 400
+                message: A payment already exists for this auction
+                error: Bad Request
+                timestamp: "2026-03-03T11:00:00"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Not the auction winner
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 403
+                message: Only the auction winner can make a payment
+                error: Forbidden
+                timestamp: "2026-03-03T11:00:00"
+        '404':
+          description: Auction or user not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: "Auction not found with id: 42"
+                error: Not Found
+                timestamp: "2026-03-03T11:00:00"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /payments/webhook:
+    post:
+      tags: [Payments]
+      summary: Stripe webhook endpoint (public — no JWT required)
+      security: []
+      parameters:
+        - name: Stripe-Signature
+          in: header
+          required: true
+          schema:
+            type: string
+            example: t=1700000000,v1=abc123signature
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: string
+      responses:
+        '200':
+          description: Webhook processed
+          content:
+            application/json:
+              example: Webhook received
+        '400':
+          description: Invalid Stripe signature or bad payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 400
+                message: Invalid Stripe webhook signature
+                error: Bad Request
+                timestamp: "2026-03-03T11:00:00"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /payments/session/{sessionId}:
+    get:
+      tags: [Payments]
+      summary: Get payment by Stripe session ID
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: cs_test_a1b2c3d4e5f6g7h8i9j0
+      responses:
+        '200':
+          description: Payment details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+              example:
+                id: 25
+                auctionId: 42
+                auctionTitle: Vintage Rolex Submariner 1965
+                buyerName: alice_dev
+                sellerName: bob_collector
+                amount: 5250.00
+                status: COMPLETED
+                paidAt: "2026-03-03T11:05:22"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Payment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: "Payment not found for session: cs_test_a1b2c3d4e5f6g7h8i9j0"
+                error: Not Found
+                timestamp: "2026-03-03T11:00:00"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /payments/auction/{auctionId}:
+    get:
+      tags: [Payments]
+      summary: Get payment by auction ID
+      parameters:
+        - name: auctionId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            example: 42
+      responses:
+        '200':
+          description: Payment details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+              example:
+                id: 25
+                auctionId: 42
+                auctionTitle: Vintage Rolex Submariner 1965
+                buyerName: alice_dev
+                sellerName: bob_collector
+                amount: 5250.00
+                status: COMPLETED
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Auction or payment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: "No payment found for auction: 42"
+                error: Not Found
+                timestamp: "2026-03-03T11:00:00"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /payments/my-payments:
+    get:
+      tags: [Payments]
+      summary: Get authenticated user's payments as buyer
+      responses:
+        '200':
+          description: Payment history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PaymentResponse'
+              example:
+                - id: 25
+                  auctionId: 42
+                  auctionTitle: Vintage Rolex Submariner 1965
+                  buyerName: alice_dev
+                  sellerName: bob_collector
+                  amount: 5250.00
+                  status: COMPLETED
+                  paidAt: "2026-03-03T11:05:22"
+                - id: 18
+                  auctionId: 35
+                  auctionTitle: Sony A7III Camera Body
+                  buyerName: alice_dev
+                  sellerName: emma_gear
+                  amount: 1800.00
+                  status: COMPLETED
+                  paidAt: "2026-02-20T15:30:00"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: "User not found: alice_dev"
+                error: Not Found
+                timestamp: "2026-03-03T11:00:00"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /payments/payments-received:
+    get:
+      tags: [Payments]
+      summary: Get payments received as seller
+      responses:
+        '200':
+          description: Received payments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PaymentResponse'
+              example:
+                - id: 31
+                  auctionId: 48
+                  auctionTitle: Gibson Les Paul 1959 Reissue
+                  buyerName: emma_watch
+                  sellerName: alice_dev
+                  amount: 3200.00
+                  status: COMPLETED
+                  paidAt: "2026-03-01T09:45:00"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: "User not found: alice_dev"
+                error: Not Found
+                timestamp: "2026-03-01T09:30:00"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ── Reviews ──
+  /reviews/auction/{auctionId}:
+    post:
+      tags: [Reviews]
+      summary: Submit a review for a completed auction
+      parameters:
+        - name: auctionId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            example: 42
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReviewRequest'
+            example:
+              rating: 5
+              comment: Excellent seller! Item was exactly as described, shipped fast.
+      responses:
+        '201':
+          description: Review submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewResponse'
+              example:
+                id: 9
+                auctionId: 42
+                auctionTitle: Vintage Rolex Submariner 1965
+                reviewerUsername: alice_dev
+                revieweeUsername: bob_collector
+                revieweeRole: SELLER
+                rating: 5
+                comment: Excellent seller! Item was exactly as described, shipped fast.
+                createdAt: "2026-03-04T09:20:00"
+        '400':
+          description: Auction not ended or already reviewed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 400
+                message: You have already submitted a review for this transaction
+                error: Bad Request
+                timestamp: "2026-03-04T09:20:00"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Not a participant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 403
+                message: Only the seller and winner can leave reviews for this auction
+                error: Forbidden
+                timestamp: "2026-03-04T09:20:00"
+        '404':
+          description: Auction or user not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: "Auction not found with id: 42"
+                error: Not Found
+                timestamp: "2026-03-04T09:20:00"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    get:
+      tags: [Reviews]
+      summary: Get all reviews for an auction
+      parameters:
+        - name: auctionId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            example: 42
+      responses:
+        '200':
+          description: Auction reviews
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReviewResponse'
+              example:
+                - id: 9
+                  auctionId: 42
+                  reviewerUsername: alice_dev
+                  revieweeUsername: bob_collector
+                  revieweeRole: SELLER
+                  rating: 5
+                  comment: Excellent seller! Highly recommended.
+                  createdAt: "2026-03-04T09:20:00"
+                - id: 10
+                  auctionId: 42
+                  reviewerUsername: bob_collector
+                  revieweeUsername: alice_dev
+                  revieweeRole: BUYER
+                  rating: 5
+                  comment: Smooth transaction, payment received quickly.
+                  createdAt: "2026-03-04T10:05:00"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Auction not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: "Auction not found with id: 42"
+                error: Not Found
+                timestamp: "2026-03-04T09:20:00"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /reviews/auction/{auctionId}/can-review:
+    get:
+      tags: [Reviews]
+      summary: Check if authenticated user can review this auction
+      parameters:
+        - name: auctionId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            example: 42
+      responses:
+        '200':
+          description: Review eligibility
+          content:
+            application/json:
+              example:
+                canReview: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Auction or user not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: "Auction not found with id: 42"
+                error: Not Found
+                timestamp: "2026-03-04T09:20:00"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /reviews/user/{username}:
+    get:
+      tags: [Reviews]
+      summary: Get user ratings and recent reviews
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+            example: bob_collector
+      responses:
+        '200':
+          description: User ratings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserRatingResponse'
+              example:
+                userId: 7
+                username: bob_collector
+                overallRating: 4.8
+                totalReviews: 21
+                sellerRating: 4.9
+                sellerReviews: 18
+                buyerRating: 4.5
+                buyerReviews: 3
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: "User not found: bob_collector"
+                error: Not Found
+                timestamp: "2026-03-04T09:20:00"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ── Watchlist ──
+  /watchlist:
+    get:
+      tags: [Watchlist]
+      summary: Get authenticated user's watchlist
+      responses:
+        '200':
+          description: Watchlist items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WatchlistResponse'
+              example:
+                - id: 33
+                  addedAt: "2026-03-01T12:00:00"
+                  auction:
+                    id: 42
+                    title: Vintage Rolex Submariner 1965
+                    currentPrice: 5250.00
+                    status: ACTIVE
+                    totalBids: 8
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: "User not found: alice_dev"
+                error: Not Found
+                timestamp: "2026-03-01T12:00:00"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /watchlist/auction-ids:
+    get:
+      tags: [Watchlist]
+      summary: Get all auction IDs in user's watchlist
+      responses:
+        '200':
+          description: List of auction IDs
+          content:
+            application/json:
+              example: [42, 38, 55]
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: "User not found: alice_dev"
+                error: Not Found
+                timestamp: "2026-03-01T12:00:00"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /watchlist/auction/{auctionId}:
+    post:
+      tags: [Watchlist]
+      summary: Add auction to watchlist
+      parameters:
+        - name: auctionId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            example: 42
+      responses:
+        '201':
+          description: Added to watchlist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatchlistResponse'
+              example:
+                id: 33
+                addedAt: "2026-03-01T12:00:00"
+                auction:
+                  id: 42
+                  title: Vintage Rolex Submariner 1965
+                  currentPrice: 5250.00
+                  status: ACTIVE
+        '400':
+          description: Already in watchlist or own auction
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 400
+                message: Auction is already in your watchlist
+                error: Bad Request
+                timestamp: "2026-03-01T12:00:00"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Auction or user not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: "Auction not found with id: 42"
+                error: Not Found
+                timestamp: "2026-03-01T12:00:00"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags: [Watchlist]
+      summary: Remove auction from watchlist
+      parameters:
+        - name: auctionId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            example: 42
+      responses:
+        '200':
+          description: Removed from watchlist
+          content:
+            application/json:
+              example:
+                message: Removed from watchlist
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Auction not in watchlist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: Auction not found in watchlist
+                error: Not Found
+                timestamp: "2026-03-01T12:00:00"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /watchlist/check/{auctionId}:
+    get:
+      tags: [Watchlist]
+      summary: Check if auction is in user's watchlist
+      parameters:
+        - name: auctionId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            example: 42
+      responses:
+        '200':
+          description: Watchlist status
+          content:
+            application/json:
+              example:
+                isInWatchlist: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: "User not found: alice_dev"
+                error: Not Found
+                timestamp: "2026-03-01T12:00:00"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ── Images ──
+  /images/upload:
+    post:
+      tags: [Images]
+      summary: Upload a single image to Cloudinary
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Image uploaded successfully
+          content:
+            application/json:
+              example:
+                url: https://res.cloudinary.com/demo/image/upload/v1/auction-platform/auctions/abc-123.jpg
+                message: Image uploaded successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /images/upload-multiple:
+    post:
+      tags: [Images]
+      summary: Upload multiple images to Cloudinary
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        '200':
+          description: Images uploaded successfully
+          content:
+            application/json:
+              example:
+                urls:
+                  - https://res.cloudinary.com/demo/image/upload/v1/auction-platform/auctions/img1.jpg
+                  - https://res.cloudinary.com/demo/image/upload/v1/auction-platform/auctions/img2.jpg
+                count: 2
+                message: Images uploaded successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /images/delete:
+    delete:
+      tags: [Images]
+      summary: Delete a single image from Cloudinary
+      parameters:
+        - name: url
+          in: query
+          required: true
+          schema:
+            type: string
+            example: https://res.cloudinary.com/demo/image/upload/v1/auction-platform/auctions/abc-123.jpg
+      responses:
+        '200':
+          description: Image deleted successfully
+          content:
+            application/json:
+              example:
+                message: Image deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /images/delete-multiple:
+    post:
+      tags: [Images]
+      summary: Delete multiple images from Cloudinary
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: string
+            example:
+              - https://res.cloudinary.com/demo/image/upload/v1/auction-platform/auctions/img1.jpg
+              - https://res.cloudinary.com/demo/image/upload/v1/auction-platform/auctions/img2.jpg
+      responses:
+        '200':
+          description: Images deleted
+          content:
+            application/json:
+              example:
+                message: Images deleted successfully
+                deletedCount: 2
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'

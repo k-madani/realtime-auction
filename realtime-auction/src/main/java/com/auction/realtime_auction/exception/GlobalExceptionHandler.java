@@ -1,5 +1,6 @@
 package com.auction.realtime_auction.exception;
 
+import com.stripe.exception.StripeException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -7,86 +8,65 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
+import java.io.IOException;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-    
-    @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleResourceNotFound(ResourceNotFoundException ex) {
-        ErrorResponse error = new ErrorResponse(
-                HttpStatus.NOT_FOUND.value(),
-                ex.getMessage(),
-                LocalDateTime.now()
-        );
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+
+    // 400 — Bad Request
+    // Covers: BadRequestException, @Valid field validation errors
+    @ExceptionHandler({BadRequestException.class, MethodArgumentNotValidException.class})
+    public ResponseEntity<ErrorResponse> handleBadRequest(Exception ex) {
+        String message;
+        if (ex instanceof MethodArgumentNotValidException manve) {
+            message = manve.getBindingResult().getAllErrors()
+                    .stream()
+                    .map(err -> err instanceof FieldError fe
+                            ? fe.getField() + ": " + fe.getDefaultMessage()
+                            : err.getDefaultMessage())
+                    .collect(Collectors.joining(", "));
+        } else {
+            message = ex.getMessage();
+        }
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(400, message, "Bad Request"));
     }
-    
-    @ExceptionHandler(BadRequestException.class)
-    public ResponseEntity<ErrorResponse> handleBadRequest(BadRequestException ex) {
-        ErrorResponse error = new ErrorResponse(
-                HttpStatus.BAD_REQUEST.value(),
-                ex.getMessage(),
-                LocalDateTime.now()
-        );
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
-    }
-    
+
+    // 401 — Unauthorized
+    // Covers: invalid/missing JWT, wrong password
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<ErrorResponse> handleUnauthorized(UnauthorizedException ex) {
-        ErrorResponse error = new ErrorResponse(
-                HttpStatus.UNAUTHORIZED.value(),
-                ex.getMessage(),
-                LocalDateTime.now()
-        );
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(new ErrorResponse(401, ex.getMessage(), "Unauthorized"));
     }
-    
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, String>> handleValidationErrors(MethodArgumentNotValidException ex) {
-        Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getAllErrors().forEach((error) -> {
-            String fieldName = ((FieldError) error).getField();
-            String errorMessage = error.getDefaultMessage();
-            errors.put(fieldName, errorMessage);
-        });
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
-    }
-    
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
-        ErrorResponse error = new ErrorResponse(
-                HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                "An unexpected error occurred: " + ex.getMessage(),
-                LocalDateTime.now()
-        );
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-    }
-}
 
-// ErrorResponse.java
-class ErrorResponse {
-    private int status;
-    private String message;
-    private LocalDateTime timestamp;
-    
-    public ErrorResponse(int status, String message, LocalDateTime timestamp) {
-        this.status = status;
-        this.message = message;
-        this.timestamp = timestamp;
+    // 403 — Forbidden
+    // Covers: update/delete another user's auction, bid on own auction, pay when not winner, non-participant review
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<ErrorResponse> handleForbidden(ForbiddenException ex) {
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(new ErrorResponse(403, ex.getMessage(), "Forbidden"));
     }
-    
-    public int getStatus() {
-        return status;
+
+    // 404 — Not Found
+    // Covers: auction, user, payment, bid not found
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNotFound(ResourceNotFoundException ex) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(404, ex.getMessage(), "Not Found"));
     }
-    
-    public String getMessage() {
-        return message;
-    }
-    
-    public LocalDateTime getTimestamp() {
-        return timestamp;
+
+    // 500 — Internal Server Error
+    // Covers: unhandled exceptions, Stripe errors, Cloudinary IO errors
+    @ExceptionHandler({Exception.class, StripeException.class, IOException.class})
+    public ResponseEntity<ErrorResponse> handleServerError(Exception ex) {
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse(500, ex.getMessage(), "Internal Server Error"));
     }
 }
